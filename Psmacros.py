@@ -1,27 +1,39 @@
 # Plattsalat specific python macros
 import uno
 
-def _getQuery(sql, types, conn):
-	"""Get the results of an SQL query as a list
+class BoDbconn:
+	"""Connection to our Bio-Office database"""
 
-	sql is the query as a string, types is a string specifying
-	the types in each row. I is for Int, S for String, conn
-	is the database connection
-	"""
-	meths = []
-	result = []
-	dbres = conn.createStatement().executeQuery(sql)
-	
-	# create a list of methods from the type string
-	for c in types:
-		if c == 'I':
-			meths.append(getattr(dbres, 'getInt'))
-		elif c == 'S':
-			meths.append(getattr(dbres, 'getString'))
+	def __init__(self):
+		# Obtain connection to our database.
+		# Needs the registered data source "bodb"
+		ctx = XSCRIPTCONTEXT.getComponentContext()
+		self.dbconn = ctx.ServiceManager.createInstanceWithContext(
+			"com.sun.star.sdb.DatabaseContext", ctx
+		).getByName("bodb").getConnection('', '')
 
-	while dbres.next():
-		result.append([meths[i](i+1) for i in range(len(meths))])
-	return result
+	def queryResult(self, sql, types):
+		"""Get the results of an SQL query as a list
+
+		sql is the query as a string, types is a string specifying
+		the types in each row. I is for Int, S for String, D for Double.
+		"""
+		meths = []
+		result = []
+		dbres = self.dbconn.createStatement().executeQuery(sql)
+
+		# create a list of methods from the type string
+		for c in types:
+			if c == 'I':
+				meths.append(getattr(dbres, 'getInt'))
+			elif c == 'S':
+				meths.append(getattr(dbres, 'getString'))
+			elif c == 'D':
+				meths.append(getattr(dbres, 'getDouble'))
+
+		while dbres.next():
+			result.append([meths[i](i+1) for i in range(len(meths))])
+		return result
 
 def _setColWidth(sheet, col, width):
 	"""Set column of a sheet to a certain width
@@ -65,23 +77,18 @@ def Waagenliste(*args):
 	electronic balances, containing the EAN numbers,
 	the names and the unit
 	"""
-	ctx = XSCRIPTCONTEXT.getComponentContext()
-	desktop = XSCRIPTCONTEXT.getDesktop()
-	smgr = ctx.ServiceManager
-	dbctx = smgr.createInstanceWithContext(
-		"com.sun.star.sdb.DatabaseContext", ctx
-	)
-	dbconn = dbctx.getByName("bodb").getConnection('', '')
 
+	db = BoDbconn()
 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit" ' \
 	 + 'FROM "V_Artikelinfo" ' \
 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
 	 + 'ORDER BY "Bezeichnung"'
 
 	# Obtain lists from DB via sql query
-	listGemuese = _getQuery(sql % 1, 'ISS', dbconn)
-	listObst = _getQuery(sql % 3, 'ISS', dbconn)
+	listGemuese = db.queryResult(sql % 1, 'ISS')
+	listObst    = db.queryResult(sql % 3, 'ISS')
 
+	desktop = XSCRIPTCONTEXT.getDesktop()
 	# Create a new calc and use its first sheet
 	calc = desktop.loadComponentFromURL(
 		"private:factory/scalc", "_blank", 0, ()
@@ -160,8 +167,7 @@ def Waagenliste(*args):
 
 	# Set lines
 	ls = uno.createUnoStruct("com.sun.star.table.BorderLine2")
-	ls.OuterLineWidth = 2
-	ls.LineWidth = 2
+	ls.OuterLineWidth = 4
 	area = sheet.getCellRangeByPosition(0,1,2,nr)
 	_setAllLines(area, ls)
 	area = sheet.getCellRangeByPosition(4,0,6,ng-nr-1)
