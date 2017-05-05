@@ -194,6 +194,9 @@ or obtain all names with::
 Note however, that the order of the returned list need not correspond to the
 sheet's indices.
 
+To get/set the active sheet of a calc, use the property
+`calc.CurrentController.ActiveSheet`.
+
 You can obtain a cell using the getCellByPosition(x,y) method. x and y are
 zero based. You can obtain a cell range (mostly equivalent to selecting some
 cells using the mouse in the GUI) with getCellRangeByPosition(x0,y0,x1,y1),
@@ -242,6 +245,23 @@ Bold face is a special constant, obtained in python via::
 Split/Merge cells by getting a cell range and call the .merge(True) method for
 merging, merge(False) for splitting. The option in the dialog where content is
 moved up is not available.
+
+Number formats are of type Long, because they are specified by and index into
+a table where rather complex format may be specified. All numbre formats of
+a document are listed in its `NumberFormats` property. There are some standard
+formats defined for a locale, `CURRENCY`, `DATE`, `TIME`. `PERCENT`, ...
+To put it all together::
+
+  from com.sun.star.lang import Locale
+  loc = Locale('de','DE','')
+  curr = uno.getConstantByName("com.sun.star.util.NumberFormat.CURRENCY")
+  cf = doc.NumberFormats.getStandardFormat(curr, loc)
+
+Indices for existing entries can be obtained by::
+
+  numberformats.queryKey(numberformatstring, localformat, bool)
+
+
 
 
 Page properties
@@ -345,3 +365,28 @@ The most used table is V_Artikelinfo which is actually a view::
     ON (Artikel.EAN = Verkauf.EAN) OR (Artikel.EAN = Einkauf.EAN)
   WHERE Verkauf.Sortiment = 1
 
+VK1 ist der Mitglieder-Verkaufspreis, VK0 der allgemeine Verkaufspreis
+
+Kassenliste braucht Spalten EAN, VKEinheit, Land, VK1, VK0
+
+
+Temporary snippets
+==================
+Listing 5.11: Obtain the current locale.
+Function OOoLang() as string
+  'Author : Laurent Godard
+  'e-mail : listes.godard@laposte.net
+
+  Dim oSet, oConfigProvider
+  Dim oParm(0) As New com.sun.star.beans.PropertyValue
+  Dim sProvider$, sAccess$
+  sProvider = "com.sun.star.configuration.ConfigurationProvider"
+  sAccess   = "com.sun.star.configuration.ConfigurationAccess"
+  oConfigProvider = createUnoService(sProvider)
+  oParm(0).Name = "nodepath"
+  oParm(0).Value = "/org.openoffice.Setup/L10N"
+  oSet = oConfigProvider.createInstanceWithArguments(sAccess, oParm())
+
+  Dim OOLangue as string
+  OOLangue= oSet.getbyname("ooLocale")    'en-US
+  OOLang=lcase(Left(trim(OOLangue),2))    'en
