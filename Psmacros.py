@@ -186,7 +186,7 @@ def Waagenliste(*args):
 
 	db = BioOfficeConn()
 
-	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VK0", "VKEinheit" ' \
+	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VK1", "VKEinheit" ' \
 	 + 'FROM "V_Artikelinfo" ' \
 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
 	 + 'ORDER BY "Bezeichnung"'
@@ -267,5 +267,103 @@ def Waagenliste(*args):
 	
 	return None
 
+def Kassenliste(*args):
+	"""Lists for the counter
+
+	Create a ready to print spreadsheet for the
+	counter, listing EAN numbers, country, prices of vegetables
+	and fruit.
+	"""
+
+	db = BioOfficeConn()
+
+	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", ' \
+	 + '      "VK1", "VK0" ' \
+	 + 'FROM "V_Artikelinfo" ' \
+	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
+	 + 'ORDER BY "Bezeichnung"'
+
+	# Obtain lists from DB via sql query
+	listGemuese = db.queryResult(sql % 1, 'ISSSDD')
+	listObst    = db.queryResult(sql % 3, 'ISSSDD')
+
+	# Use a consistant capitalization for the unit
+	for r in listGemuese: r[3] = r[3].capitalize()
+	for r in listObst:    r[3] = r[3].capitalize()
+
+	sheet = Sheet('Kassenliste', 2)
+	doc = sheet.calc
+
+	# Get the default cell style
+	# and use it to set use a 12pt Font Size by default
+	cs = doc.getStyleFamilies().getByName('CellStyles').getByName('Default')
+	cs.CharHeight=12
+
+	sheet.addData(listGemuese, listObst)
+
+	bf = uno.getConstantByName("com.sun.star.awt.FontWeight.BOLD")
+
+	p = sheet.HeaderPositions[0]
+	cell = sheet.getCell(p.x + 1, p.y)
+	cell.String = "Gemüse"
+	cell.CharHeight = 14
+	cell.CharWeight = bf
+
+	p = sheet.HeaderPositions[1]
+	cell = sheet.getCell(p.x + 1, p.y)
+	cell.String = "Obst"
+	cell.CharHeight = 14
+	cell.CharWeight = bf
+
+	# set column width (mm)
+	# EAN Columns fixed to 10mm
+	sheet.setColWidth(0, 10)
+	sheet.setColWidth(7, 10)
+	# Name Columns dynamically
+	sheet.setColOptimal(1, 55)
+	sheet.setColOptimal(8, 55)
+	# Country Columns fixed to 8mm
+	sheet.setColWidth(2, 8)
+	sheet.setColWidth(9, 8)
+	# Unit Columns fixed to 10mm
+	sheet.setColWidth(3, 10)
+	sheet.setColWidth(10, 10)
+	# Price Coumns to 1.7mm
+	sheet.setColWidth(4, 17)
+	sheet.setColWidth(5, 17)
+	sheet.setColWidth(11, 17)
+	sheet.setColWidth(12, 17)
+	# Empty colum D fixed to 8mm
+	sheet.setColWidth(6, 8)
+
+	# a little bit of margin
+	sheet.getCol(0).ParaRightMargin = 100
+	sheet.getCol(7).ParaRightMargin = 100
+	for i in range (2, 6):
+		sheet.getCol(i).ParaLeftMargin = 100
+		sheet.getCol(i+7).ParaLeftMargin = 100
+
+	# EAN numbers in bold
+	sheet.getCol(0).CharWeight = bf
+	sheet.getCol(7).CharWeight = bf
+
+	sheet.addGrey(3)
+	sheet.addGrey(8)
+
+	# Set Page style
+	defp = doc.StyleFamilies.getByName("PageStyles").getByName("Default")
+	defp.LeftMargin   = 500
+	defp.TopMargin    = 500
+	defp.BottomMargin = 500
+	defp.RightMargin  = 500
+
+	defp.HeaderIsOn=False
+	defp.FooterIsOn=False
+	defp.CenterHorizontally=True
+	defp.CenterVertically=True
+	defp.PageScale = sheet.getOptimalScale()
+
+	return None
+
 # Only export the public functions as macros
-g_exportedScripts = Waagenliste,
+g_exportedScripts = Waagenliste, Kassenliste

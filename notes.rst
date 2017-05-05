@@ -367,7 +367,7 @@ The most used table is V_Artikelinfo which is actually a view::
 
 VK1 ist der Mitglieder-Verkaufspreis, VK0 der allgemeine Verkaufspreis
 
-Kassenliste braucht Spalten EAN, VKEinheit, Land, VK1, VK0
+Kassenliste braucht Spalten EAN, Bezeichnung, VKEinheit, Land, VK1, VK0
 
 
 Temporary snippets
