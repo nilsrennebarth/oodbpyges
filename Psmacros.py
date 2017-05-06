@@ -1,6 +1,7 @@
 # Plattsalat specific python macros
 import collections
 import uno
+import types
 from com.sun.star.lang import Locale
 
 class BioOfficeConn:
@@ -27,7 +28,7 @@ class BioOfficeConn:
 		# create a list of methods from the type string
 		for c in types:
 			if c == 'I':
-				meths.append(getattr(dbres, 'getInt'))
+				meths.append(getattr(dbres, 'getLong'))
 			elif c == 'S':
 				meths.append(getattr(dbres, 'getString'))
 			elif c == 'D':
@@ -38,6 +39,30 @@ class BioOfficeConn:
 		return result
 
 Pos = collections.namedtuple('Pos', 'x y')
+
+class ColumnDef(types.SimpleNamespace):
+	"""Options for a single column in a table
+
+	This is mostly a container for various options. The following
+	options are currently recognized:
+	- width (int) width in mm
+	- tryOptWidth (boolean) First try to set the width to its optimum
+	  value. Only if that is too big, set it to the given width
+	- bold (boolean) set typeface to bold
+	- greyUnit (boolean) set background to grey if the text appears
+	  to represent discrete units
+
+	"""
+
+	colDefaults = dict(
+		bold=False,
+		greyUnit=False,
+		tryOptWidth=False,
+		width=10
+	)
+	def __init__(self, **opts):
+		self.__dict__.update(ColumnDef.colDefaults)
+		super().__init__(**opts)
 
 class Sheet:
 	"""A single sheet to be filled with tables"""
@@ -57,6 +82,16 @@ class Sheet:
 		)
 		self.Linestyle = uno.createUnoStruct("com.sun.star.table.BorderLine2")
 		self.Linestyle.OuterLineWidth = 4
+		self.ColDefs = []
+		self.Boldface = uno.getConstantByName("com.sun.star.awt.FontWeight.BOLD")
+		# Get the default cell style
+		# and use it to set use a 12pt Font Size by default
+		cs = self.calc.StyleFamilies.CellStyles.getByName('Default')
+		cs.CharHeight=12
+
+
+	def addColumns(self, cols):
+		self.ColDefs += cols
 
 	def getCell(self, x, y):
 		return self.sheet.getCellByPosition(x, y)
@@ -67,25 +102,6 @@ class Sheet:
 	def getRow(self, row):
 		return self.sheet.getRows().getByIndex(row)
 
-	def setColWidth(self, col, width):
-		"""Set column of a sheet to a certain width
-
-		col: Column index (0 based)
-		width: width in mm
-		"""
-		self.sheet.getColumns().getByIndex(col).Width = width * 100
-
-	def setColOptimal(self, col, maxwidth):
-		"""Set column to optimal width
-
-		col: Column index (0 based)
-		maxwidth: maximal width in mm
-		"""
-		col = self.sheet.getColumns().getByIndex(col)
-		col.OptimalWidth = True
-		if col.Width > maxwidth * 100:
-			col.Width = maxwidth * 100
-
 	def addLines(self, x, y, n):
 		"""Add lines around all cells in part of a row"""
 		cells = self.sheet.getCellRangeByPosition(x,y,x+n-1,y)
@@ -93,6 +109,8 @@ class Sheet:
 		cells.RightBorder  = self.Linestyle
 		cells.TopBorder    = self.Linestyle
 		cells.BottomBorder = self.Linestyle
+		cells.ParaRightMargin = 100
+		cells.ParaLeftMargin  = 100
 
 	def addData(self, *lists):
 
@@ -175,6 +193,45 @@ class Sheet:
 			if len(cell.String) == 2 and cell.String != 'Kg':
 				cell.CellBackColor = 0xdddddd
 
+	def formatCol(self, i, cdef):
+		col = self.getCol(i)
+		if cdef.tryOptWidth:
+			col.OptimalWidth = True
+			if col.Width > cdef.width * 100:
+				col.Width = cdef.width * 100
+		else:
+			col.Width = cdef.width * 100
+		if cdef.bold:
+			col.CharWeight = self.Boldface
+		if cdef.greyUnit:
+			self.addGrey(i)
+
+	def formatColumns(self):
+		for t in range(self.cols):
+			for i,cdef in enumerate(self.ColDefs):
+				self.formatCol(t * (self.colCols + 1) + i, cdef)
+			if t < self.cols-1:
+				self.getCol((t+1) * (self.colCols + 1) - 1).Width = 800
+
+	def setListLabels(self, *labels):
+		for i,l in enumerate(labels):
+			p = self.HeaderPositions[i]
+			cell = self.getCell(p.x + 1, p.y)
+			cell.String = l
+			cell.CharHeight = 14
+			cell.CharWeight = self.Boldface
+
+	def setPageStyle(self):
+		defp = self.calc.StyleFamilies.PageStyles.getByName("Default")
+		defp.LeftMargin   = 500
+		defp.TopMargin    = 500
+		defp.BottomMargin = 500
+		defp.RightMargin  = 500
+		defp.HeaderIsOn=False
+		defp.FooterIsOn=False
+		defp.CenterHorizontally=True
+		defp.CenterVertically=True
+		defp.PageScale = self.getOptimalScale()
 
 def Waagenliste(*args):
 	"""Lists for the electronic balances
@@ -200,81 +257,21 @@ def Waagenliste(*args):
 	for r in listObst:    r[3] = r[3].capitalize()
 
 	sheet = Sheet('Waagenliste', 2)
-	doc = sheet.calc
-
-	# Get the default cell style
-	# and use it to set use a 12pt Font Size by default
-	cs = doc.getStyleFamilies().getByName('CellStyles').getByName('Default')
-	cs.CharHeight=12
-
 	sheet.addData(listGemuese, listObst)
-
-	bf = uno.getConstantByName("com.sun.star.awt.FontWeight.BOLD")
-
-	p = sheet.HeaderPositions[0]
-	cell = sheet.getCell(p.x + 1, p.y)
-	cell.String = "Gemüse"
-	cell.CharHeight = 14
-	cell.CharWeight = bf
-
-	p = sheet.HeaderPositions[1]
-	cell = sheet.getCell(p.x + 1, p.y)
-	cell.String = "Obst"
-	cell.CharHeight = 14
-	cell.CharWeight = bf
-
-	# set column width (mm)
-	# EAN Columns fixed to 10mm
-	sheet.setColWidth(0, 10)
-	sheet.setColWidth(5, 10)
-	# Name Columns dynamically
-	sheet.setColOptimal(1, 55)
-	sheet.setColOptimal(6, 55)
-	# Price Coumns to 1.7mm
-	sheet.setColWidth(2, 17)
-	sheet.setColWidth(7, 17)
-	# Unit Columns fixed to 10mm
-	sheet.setColWidth(3, 10)
-	sheet.setColWidth(8, 10)
-	# Empty colum D fixed to 8mm
-	sheet.setColWidth(4, 8)
-
-	# a little bit of margin
-	sheet.getCol(0).ParaRightMargin = 100
-	sheet.getCol(5).ParaRightMargin = 100
-	sheet.getCol(3).ParaLeftMargin = 100
-	sheet.getCol(8).ParaLeftMargin = 100
-
-	# EAN numbers in bold
-	sheet.getCol(0).CharWeight = bf
-	sheet.getCol(5).CharWeight = bf
-
-	sheet.addGrey(3)
-	sheet.addGrey(8)
-
-	# Set Page style
-	defp = doc.StyleFamilies.getByName("PageStyles").getByName("Default")
-	defp.LeftMargin   = 500
-	defp.TopMargin    = 500
-	defp.BottomMargin = 500
-	defp.RightMargin  = 500
-
-	defp.HeaderIsOn=False
-	defp.FooterIsOn=False
-	defp.CenterHorizontally=True
-	defp.CenterVertically=True
-	defp.PageScale = sheet.getOptimalScale()
+	sheet.addColumns([
+		ColumnDef(width=10, bold=True),
+		ColumnDef(width=50, tryOptWidth=True),
+		ColumnDef(width=17),
+		ColumnDef(width=10, greyUnit=True)
+	]);
+	sheet.formatColumns()
+	sheet.setListLabels("Gemüse", "Obst")
+	sheet.setPageStyle()
 	
 	return None
 
-def Kassenliste(*args):
-	"""Lists for the counter
 
-	Create a ready to print spreadsheet for the
-	counter, listing EAN numbers, country, prices of vegetables
-	and fruit.
-	"""
-
+def KassenlisteGemuese(*args):
 	db = BioOfficeConn()
 
 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", ' \
@@ -292,78 +289,51 @@ def Kassenliste(*args):
 	for r in listObst:    r[3] = r[3].capitalize()
 
 	sheet = Sheet('Kassenliste', 2)
-	doc = sheet.calc
-
-	# Get the default cell style
-	# and use it to set use a 12pt Font Size by default
-	cs = doc.getStyleFamilies().getByName('CellStyles').getByName('Default')
-	cs.CharHeight=12
-
 	sheet.addData(listGemuese, listObst)
-
-	bf = uno.getConstantByName("com.sun.star.awt.FontWeight.BOLD")
-
-	p = sheet.HeaderPositions[0]
-	cell = sheet.getCell(p.x + 1, p.y)
-	cell.String = "Gemüse"
-	cell.CharHeight = 14
-	cell.CharWeight = bf
-
-	p = sheet.HeaderPositions[1]
-	cell = sheet.getCell(p.x + 1, p.y)
-	cell.String = "Obst"
-	cell.CharHeight = 14
-	cell.CharWeight = bf
-
-	# set column width (mm)
-	# EAN Columns fixed to 10mm
-	sheet.setColWidth(0, 10)
-	sheet.setColWidth(7, 10)
-	# Name Columns dynamically
-	sheet.setColOptimal(1, 55)
-	sheet.setColOptimal(8, 55)
-	# Country Columns fixed to 8mm
-	sheet.setColWidth(2, 8)
-	sheet.setColWidth(9, 8)
-	# Unit Columns fixed to 10mm
-	sheet.setColWidth(3, 10)
-	sheet.setColWidth(10, 10)
-	# Price Coumns to 1.7mm
-	sheet.setColWidth(4, 17)
-	sheet.setColWidth(5, 17)
-	sheet.setColWidth(11, 17)
-	sheet.setColWidth(12, 17)
-	# Empty colum D fixed to 8mm
-	sheet.setColWidth(6, 8)
-
-	# a little bit of margin
-	sheet.getCol(0).ParaRightMargin = 100
-	sheet.getCol(7).ParaRightMargin = 100
-	for i in range (2, 6):
-		sheet.getCol(i).ParaLeftMargin = 100
-		sheet.getCol(i+7).ParaLeftMargin = 100
-
-	# EAN numbers in bold
-	sheet.getCol(0).CharWeight = bf
-	sheet.getCol(7).CharWeight = bf
-
-	sheet.addGrey(3)
-	sheet.addGrey(8)
-
-	# Set Page style
-	defp = doc.StyleFamilies.getByName("PageStyles").getByName("Default")
-	defp.LeftMargin   = 500
-	defp.TopMargin    = 500
-	defp.BottomMargin = 500
-	defp.RightMargin  = 500
-
-	defp.HeaderIsOn=False
-	defp.FooterIsOn=False
-	defp.CenterHorizontally=True
-	defp.CenterVertically=True
-	defp.PageScale = sheet.getOptimalScale()
-
+	sheet.addColumns([
+		ColumnDef(width=10, bold=True),        # EAN
+		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
+		ColumnDef(width=8),                    # Land
+		ColumnDef(width=8, greyUnit=True),     # VKEinheit
+		ColumnDef(width=17), # Preis Mitglieder
+		ColumnDef(width=17)  # Preis Andere
+	])
+	sheet.formatColumns()
+	sheet.setListLabels("Gemüse", "Obst")
+	sheet.setPageStyle()
 	return None
 
+
+def KassenlisteBrot(*args):
+	db = BioOfficeConn()
+
+	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit", ' \
+	 + '      "VK1", "VK0" ' \
+	 + 'FROM "V_Artikelinfo" ' \
+	 + 'WHERE "LadenID" = \'PLATTSALAT\' AND "WG" = \'%s\' ' \
+	 + '  AND "EAN" <= 9999 ' \
+	 + 'ORDER BY "Bezeichnung"'
+
+	# Obtain lists from DB via sql query
+	listBrot = db.queryResult(sql % '0020', 'ISSDD')
+
+	# Use a consistant capitalization for the unit
+	for r in listBrot: r[2] = r[2].capitalize()
+
+	sheet = Sheet('KassenlisteBrot', 2)
+	sheet.addData(listBrot)
+	sheet.addColumns([
+		ColumnDef(width=15, bold=True),        # EAN
+		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
+		ColumnDef(width=12, greyUnit=True),    # VKEinheit
+		ColumnDef(width=17), # Preis Mitglieder
+		ColumnDef(width=17)  # Preis Andere
+	])
+	sheet.formatColumns()
+	sheet.setListLabels("Brot")
+	sheet.setPageStyle()
+	return None
+
+
 # Only export the public functions as macros
-g_exportedScripts = Waagenliste, Kassenliste
+g_exportedScripts = Waagenliste, KassenlisteGemuese, KassenlisteBrot
