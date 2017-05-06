@@ -20,12 +20,13 @@ where
   dbname
     Extras (the separate schema, containing our own tables and views)
 
-As the JDBC driver class use `net.sourceforge.jtds.jdbc.Driver` Note that
-libreoffice needs the standard java classpath, where libtds is installed
-as well, to be set explicitly to `/usr/share/java` in the LibreOffice
-configuration at LibreOffice - Advanced - Java Options - Class Path, and
-obviously, you need a java runtime registered for LibreOffice. In our case,
-this is 1.8.0_121, provided by the debian package `openjdk-8-jre`
+Use `sa` as username.  As the JDBC driver class use
+`net.sourceforge.jtds.jdbc.Driver` Note that libreoffice needs the standard
+java classpath, where libtds is installed as well, to be set explicitly to
+`/usr/share/java` in the LibreOffice configuration at LibreOffice - Advanced -
+Java Options - Class Path, and obviously, you need a java runtime registered
+for LibreOffice. In our case, this is 1.8.0_121, provided by the debian
+package `openjdk-8-jre`
 
 The password may be omitted, in which case your are asked for it, every time
 the database is (re)opened.
@@ -336,20 +337,6 @@ Other URLs
 Snippets
 ========
 
-	model = desktop.getCurrentComponent()
-	asheet = model.CurrentController.ActiveSheet
-	cell = asheet.getCellRangeByName("C4")
-	cell.String = "Foobar"
-
-import uno
-localContext = uno.getComponentContext()
-resolver = localContext.ServiceManager.createInstanceWithContext("com.sun.star.bridge.UnoUrlResolver",localContext)
-ctx = resolver.resolve("uno:socket,host=localhost,port=2002;urp;StarOffice.ComponentContext")
-smgr = ctx.ServiceManager
-desktop = smgr.createInstanceWithContext("com.sun.star.frame.Desktop",ctx)
-model=desktop.getCurrentComponent()
-asheet = model.CurrentController.ActiveSheet
-
 Local BioOffice notes
 ---------------------
 The most used table is V_Artikelinfo which is actually a view::
@@ -370,23 +357,3 @@ VK1 ist der Mitglieder-Verkaufspreis, VK0 der allgemeine Verkaufspreis
 Kassenliste braucht Spalten EAN, Bezeichnung, VKEinheit, Land, VK1, VK0
 
 
-Temporary snippets
-==================
-Listing 5.11: Obtain the current locale.
-Function OOoLang() as string
-  'Author : Laurent Godard
-  'e-mail : listes.godard@laposte.net
-
-  Dim oSet, oConfigProvider
-  Dim oParm(0) As New com.sun.star.beans.PropertyValue
-  Dim sProvider$, sAccess$
-  sProvider = "com.sun.star.configuration.ConfigurationProvider"
-  sAccess   = "com.sun.star.configuration.ConfigurationAccess"
-  oConfigProvider = createUnoService(sProvider)
-  oParm(0).Name = "nodepath"
-  oParm(0).Value = "/org.openoffice.Setup/L10N"
-  oSet = oConfigProvider.createInstanceWithArguments(sAccess, oParm())
-
-  Dim OOLangue as string
-  OOLangue= oSet.getbyname("ooLocale")    'en-US
-  OOLang=lcase(Left(trim(OOLangue),2))    'en
