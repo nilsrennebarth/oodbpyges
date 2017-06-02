@@ -1,6 +1,24 @@
 Database access and scripting for Plattsalat printouts
 ======================================================
 
+Installation
+------------
+For every user, LibreOffice and a java runtime needs to be installed.
+
+- Put jtds-1.3.1.jar either into the system's classpath (linux)
+  or somehere in a user's application subdir (Windows)
+- Add the java runtime to LibreOffice in Tools -> Options -> LibreOffice
+  -> Advanced
+- Create a LibreOffice datasource by New Database -> Select Database ->
+  Connect to an existing database, JDBC, use the settings from the next
+  section and create it with name bodb. Save it somwhere in the user's
+  path
+- Install the python scripts in
+  - (Windows) C:\Users\<username>\AppData\Roaming
+    \libreoffice\4\user\Scripts\python
+  - (Linux) ~/.config/libreoffice/4/user/Scripts/python
+- Create the Extra Toolbar and connect it with the macros.
+
 Accessing the database
 ----------------------
 We choose jdbc to access the database, which is a MS-SQL running on a virtual
@@ -9,19 +27,24 @@ well. Install the package `libjtds-java`, supplying a JDBC driver for
 microsoft and sybase databases, then create a new database (no, don't worry,
 it will just be a reference to a database).
 
-Use the following as the Datasource URL:
-  jtds:sqlserver://<host>:<port>/<dbname>;password=<password>
-where
+As Datasource URL use
+`jdbc: jtds:sqlserver://bodb:1433/Extras;password=***REMOVED***`
+As user name
+`sa`
+and as JDBC driver class use
+`net.sourceforge.jtds.jdbc.Driver`, 
 
-  host
-    bodb (meaning bio office database of course)
-  port
-    1433 (the standard port for MS-SQL)
-  dbname
-    Extras (the separate schema, containing our own tables and views)
+Explanation for the URL:
 
-Use `sa` as username.  As the JDBC driver class use
-`net.sourceforge.jtds.jdbc.Driver` Note that libreoffice needs the standard
+  bodb
+    Host
+  1433
+    Port (1433 is standard and can probably be omitted
+  Extras
+    Name of database. This is the schema where ps specific views and
+    tables are stored to not interfere with the normal BioOffice
+
+Note that libreoffice needs the standard
 java classpath, where libtds is installed as well, to be set explicitly to
 `/usr/share/java` in the LibreOffice configuration at LibreOffice - Advanced -
 Java Options - Class Path, and obviously, you need a java runtime registered
