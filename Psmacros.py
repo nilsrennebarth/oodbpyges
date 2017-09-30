@@ -181,10 +181,20 @@ class Sheet:
 		h=0
 		for i in range(self.totalRows):
 			h += self.getRow(i).Height
+		if h==0 or w==0: return 100 # should not happen
 		ws = 19900 / w # factor to scale to 199mm width
 		hs = 28600 / h # factor to scale to 286mm height
-		# return the smaller one
-		return ws * 100 if ws < hs else hs * 100
+		# We must use the smaller of the two for scaling.
+		# If hs is smaller, the resulting height is at the maximum,
+		# and we only might make the Columns a bit wider, but we don't
+		if hs < ws: return hs * 100
+		# If ws is smaller, the resulting width is at the maximum.
+		# In that case we can still make each row a bit higher to increase
+		# readability
+		hstretch = 28600 / (h * ws)
+		for i in range(self.totalRows):
+			self.getRow(i).Height = self.getRow(i).Height * hstretch
+		return ws * 100
 
 
 	def addGrey(self, col):
