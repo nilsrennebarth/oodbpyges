@@ -164,7 +164,9 @@ Using Uno
 ---------
 Uno is the tree of classes and interfaces in OpenOffice.
 
-See http://www.openoffice.org/api/docs/common/ref/ for API reference info
+See
+http://www.openoffice.org/api/docs/common/ref/com/sun/star/module-ix.html
+for API reference info
 
 To obtain the path of the current document in the filesystem use
 the property `URL`, a String containing the 'file:' URL, so if you leave out the
