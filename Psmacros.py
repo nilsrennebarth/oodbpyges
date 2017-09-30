@@ -182,8 +182,8 @@ class Sheet:
 		for i in range(self.totalRows):
 			h += self.getRow(i).Height
 		if h==0 or w==0: return 100 # should not happen
-		ws = 19900 / w # factor to scale to 199mm width
-		hs = 28600 / h # factor to scale to 286mm height
+		ws = 19500 / w # factor to scale to 195mm width
+		hs = 27500 / h # factor to scale to 275mm height
 		# We must use the smaller of the two for scaling.
 		# If hs is smaller, the resulting height is at the maximum,
 		# and we only might make the Columns a bit wider, but we don't
@@ -314,24 +314,26 @@ def KassenlisteGemuese(*args):
 	return None
 
 
-def KassenlisteBrot(*args):
-	db = BioOfficeConn()
-
-	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit", ' \
+sql_brot = 'SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit", ' \
 	 + '      "VK1", "VK0" ' \
 	 + 'FROM "V_Artikelinfo" ' \
 	 + 'WHERE "LadenID" = \'PLATTSALAT\' AND "WG" = \'%s\' ' \
-	 + '  AND "EAN" <= 9999 ' \
+	 + '  AND "LiefID" = \'%s\' ' \
+	 + '  AND "EAN" <= 9999 AND "EAN" >= 1000 ' \
 	 + 'ORDER BY "Bezeichnung"'
 
+def KassenlisteBrotS(*args):
+	db = BioOfficeConn()
+
 	# Obtain lists from DB via sql query
-	listBrot = db.queryResult(sql % '0020', 'ISSDD')
+	listBrot = db.queryResult(sql_brot % ('0020', 'SCHÄFERBROT'), 'ISSDD')
+	listGeb  = db.queryResult(sql_brot % ('0025', 'SCHÄFERBROT'), 'ISSDD')
 
 	# Use a consistant capitalization for the unit
 	for r in listBrot: r[2] = r[2].capitalize()
 
-	sheet = Sheet('KassenlisteBrot', 2)
-	sheet.addData(listBrot)
+	sheet = Sheet('KassenlisteBrotS', 2)
+	sheet.addData(listBrot, listGeb)
 	sheet.addColumns([
 		ColumnDef(width=15, bold=True),        # EAN
 		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
@@ -340,10 +342,35 @@ def KassenlisteBrot(*args):
 		ColumnDef(width=17)  # Preis Andere
 	])
 	sheet.formatColumns()
-	sheet.setListLabels("Brot")
+	sheet.setListLabels("Schäfer Brot", "Schäfer Kleingebäck")
+	sheet.setPageStyle()
+	return None
+
+def KassenlisteBrotW(*args):
+	db = BioOfficeConn()
+
+	# Obtain lists from DB via sql query
+	listBrot = db.queryResult(sql_brot % ('0020', 'WEBER'), 'ISSDD')
+	listGeb  = db.queryResult(sql_brot % ('0025', 'WEBER'), 'ISSDD')
+
+	# Use a consistant capitalization for the unit
+	for r in listBrot: r[2] = r[2].capitalize()
+
+	sheet = Sheet('KassenlisteBrotW', 2)
+	sheet.addData(listBrot, listGeb)
+	sheet.addColumns([
+		ColumnDef(width=15, bold=True),        # EAN
+		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
+		ColumnDef(width=12, greyUnit=True),    # VKEinheit
+		ColumnDef(width=17), # Preis Mitglieder
+		ColumnDef(width=17)  # Preis Andere
+	])
+	sheet.formatColumns()
+	sheet.setListLabels("Weber Brot", "Weber Kleingebäck")
 	sheet.setPageStyle()
 	return None
 
 
 # Only export the public functions as macros
-g_exportedScripts = Waagenliste, KassenlisteGemuese, KassenlisteBrot
+g_exportedScripts = Waagenliste, KassenlisteGemuese, KassenlisteBrotS,\
+					KassenlisteBrotW
