@@ -3,6 +3,7 @@ import collections
 import uno
 import types
 from com.sun.star.lang import Locale
+from com.sun.star.table.CellVertJustify import CENTER as vertCenter
 
 class BioOfficeConn:
 	"""Connection to our Bio-Office database"""
@@ -46,6 +47,7 @@ class ColumnDef(types.SimpleNamespace):
 	This is mostly a container for various options. The following
 	options are currently recognized:
 	- width (int) width in mm
+	- height (int) char height
 	- tryOptWidth (boolean) First try to set the width to its optimum
 	  value. Only if that is too big, set it to the given width
 	- bold (boolean) set typeface to bold
@@ -58,7 +60,8 @@ class ColumnDef(types.SimpleNamespace):
 		bold=False,
 		greyUnit=False,
 		tryOptWidth=False,
-		width=10
+		width=10,
+		height=12
 	)
 	def __init__(self, **opts):
 		self.__dict__.update(ColumnDef.colDefaults)
@@ -192,6 +195,7 @@ class Sheet:
 		# In that case we can still make each row a bit higher to increase
 		# readability
 		hstretch = 28600 / (h * ws)
+		if hstretch > 1.5: hstretch = 1.5
 		for i in range(self.totalRows):
 			self.getRow(i).Height = self.getRow(i).Height * hstretch
 		return ws * 100
@@ -215,6 +219,9 @@ class Sheet:
 			col.CharWeight = self.Boldface
 		if cdef.greyUnit:
 			self.addGrey(i)
+		if cdef.height != 12:
+			col.CharHeight = cdef.height
+		col.VertJustify = vertCenter
 
 	def formatColumns(self):
 		for t in range(self.cols):
@@ -322,55 +329,140 @@ sql_brot = 'SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit", ' \
 	 + '  AND "EAN" <= 9999 AND "EAN" >= 1000 ' \
 	 + 'ORDER BY "Bezeichnung"'
 
-def KassenlisteBrotS(*args):
+def KassenlisteBrot(name, id):
 	db = BioOfficeConn()
 
 	# Obtain lists from DB via sql query
-	listBrot = db.queryResult(sql_brot % ('0020', 'SCHÄFERBROT'), 'ISSDD')
-	listGeb  = db.queryResult(sql_brot % ('0025', 'SCHÄFERBROT'), 'ISSDD')
+	lst1 = db.queryResult(sql_brot % ('0020', id), 'ISSDD')
+	lst2 = db.queryResult(sql_brot % ('0025', id), 'ISSDD')
 
 	# Use a consistant capitalization for the unit
-	for r in listBrot: r[2] = r[2].capitalize()
+	for r in lst1: r[2] = r[2].capitalize()
+	for r in lst2: r[2] = r[2].capitalize()
 
-	sheet = Sheet('KassenlisteBrotS', 2)
-	sheet.addData(listBrot, listGeb)
+	sheet = Sheet('KassenlisteBrot'+id, 2)
+	sheet.addData(lst1, lst2)
 	sheet.addColumns([
 		ColumnDef(width=15, bold=True),        # EAN
 		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
 		ColumnDef(width=12, greyUnit=True),    # VKEinheit
-		ColumnDef(width=17), # Preis Mitglieder
-		ColumnDef(width=17)  # Preis Andere
+		ColumnDef(width=14, height=10), # Preis Mitglieder
+		ColumnDef(width=14, height=10)  # Preis Andere
 	])
 	sheet.formatColumns()
-	sheet.setListLabels("Schäfer Brot", "Schäfer Kleingebäck")
+	sheet.setListLabels(name + ' Brot', name + ' Kleingebäck')
 	sheet.setPageStyle()
 	return None
+
+def KassenlisteBrotS(*args):
+	return KassenlisteBrot('Schäfer', 'SCHÄFERBROT')
 
 def KassenlisteBrotW(*args):
+	return KassenlisteBrot('Weber', 'WEBER')
+
+sql_fleisch = """SELECT
+  "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
+FROM "V_Artikelinfo"
+WHERE "LadenID" = 'PLATTSALAT'
+  AND "WG" = '0090'
+  AND "LiefID" = '%s'
+ORDER BY "Bezeichnung" """
+
+def KassenlisteFleisch(name, id):
 	db = BioOfficeConn()
 
-	# Obtain lists from DB via sql query
-	listBrot = db.queryResult(sql_brot % ('0020', 'WEBER'), 'ISSDD')
-	listGeb  = db.queryResult(sql_brot % ('0025', 'WEBER'), 'ISSDD')
+	lst = db.queryResult(sql_fleisch % id, 'ISSDD')
+	for r in lst: r[2] = r[2].capitalize()
 
-	# Use a consistant capitalization for the unit
-	for r in listBrot: r[2] = r[2].capitalize()
-
-	sheet = Sheet('KassenlisteBrotW', 2)
-	sheet.addData(listBrot, listGeb)
+	sheet = Sheet('KassenlisteFleisch'+name, 2)
+	sheet.addData(lst)
 	sheet.addColumns([
 		ColumnDef(width=15, bold=True),        # EAN
 		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
 		ColumnDef(width=12, greyUnit=True),    # VKEinheit
-		ColumnDef(width=17), # Preis Mitglieder
-		ColumnDef(width=17)  # Preis Andere
+		ColumnDef(width=14, height=10), # Preis Mitglieder
+		ColumnDef(width=14, height=10)  # Preis Andere
 	])
 	sheet.formatColumns()
-	sheet.setListLabels("Weber Brot", "Weber Kleingebäck")
+	sheet.setListLabels('Fleisch ' + name)
 	sheet.setPageStyle()
 	return None
 
+def KassenlisteFleischFau(*args):
+	return KassenlisteFleisch('Fauser', 'FAUSER')
+
+def KassenlisteFleischUnt(*args):
+	return KassenlisteFleisch('Unterweger', 'UNTERWEGER')
+
+def KassenlisteFleischUri(*args):
+	return KassenlisteFleisch('Uria', 'URIA')
+
+def wglist(*args):
+	return "'" + "', '".join(args) + "'"
+
+sql_loses1 = """SELECT DISTINCT
+  "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
+FROM "V_Artikelinfo"
+WHERE "LadenID" = 'PLATTSALAT'
+  AND "WG" = '%s'
+ORDER BY "Bezeichnung" """
+
+sql_loses2 = """SELECT DISTINCT
+  "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
+FROM "V_Artikelinfo"
+WHERE "LadenID" = 'PLATTSALAT'
+  AND "WG" in (%s)
+  AND "iWG" = 'HH'
+ORDER BY "Bezeichnung" """
+
+sql_loses3 = """SELECT DISTINCT
+  "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
+FROM "V_Artikelinfo"
+WHERE "LadenID" = 'PLATTSALAT'
+  AND "LiefID" = 'TENNENTAL'
+  AND "WG" in (%s)
+  AND "iWG" = 'HH'
+ORDER BY "Bezeichnung" """
+
+def KassenlisteLoseWare(*args):
+	db = BioOfficeConn()
+
+	lst1 = db.queryResult(sql_loses1 % '0585', 'ISSDD')
+	lst2 = db.queryResult(sql_loses1 % '0590', 'ISSDD')
+	lst3 = db.queryResult(sql_loses2 % wglist('0400'), 'ISSDD')
+	lst4 = db.queryResult(sql_loses2 %
+						  wglist('0070', '0200', '0280', '0340'), 'ISSDD')
+	lst5 = db.queryResult(sql_loses2 %
+						  wglist('0020', '0025', '0060'), 'ISSDD')
+	for r in lst1: r[2] = r[2].capitalize()
+	for r in lst2: r[2] = r[2].capitalize()
+	for r in lst3: r[2] = r[2].capitalize()
+	for r in lst4: r[2] = r[2].capitalize()
+	for r in lst5: r[2] = r[2].capitalize()
+
+	sheet = Sheet('KassenlisteLoseWare', 2)
+	sheet.addData(lst1, lst2, lst3, lst4, lst5)
+	sheet.addColumns([
+		ColumnDef(width=17, bold=True),        # EAN
+		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
+		ColumnDef(width=12, greyUnit=True),    # VKEinheit
+		ColumnDef(width=16, height=10), # Preis Mitglieder
+		ColumnDef(width=16, height=10)  # Preis Andere
+	])
+	sheet.formatColumns()
+	sheet.setListLabels('Lose Lebensmittel', 'Lose Waschmittel',
+						'Säfte', '5 Elemente', 'Tennental')
+	sheet.setPageStyle()
+	return None
 
 # Only export the public functions as macros
-g_exportedScripts = Waagenliste, KassenlisteGemuese, KassenlisteBrotS,\
-					KassenlisteBrotW
+g_exportedScripts = [
+	Waagenliste,
+	KassenlisteGemuese,
+	KassenlisteBrotS,
+	KassenlisteBrotW,
+	KassenlisteFleischFau,
+	KassenlisteFleischUnt,
+	KassenlisteFleischUri,
+	KassenlisteLoseWare
+]
