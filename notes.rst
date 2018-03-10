@@ -73,6 +73,12 @@ naming is the same, first all directories below basic, then the name of the
 file (without the extension) and finally as leaves the top level functions
 (are nested functions even possible in the LibreOffice basic dialect?)
 
+Btw: To check the syntax of a python script do::
+
+  python -m py_compile foo.py
+
+
+
 Create shortcut
 ~~~~~~~~~~~~~~~
 Calling a macro is rather cumbersome: Tools - Macros - Run Macro, then two
@@ -173,7 +179,15 @@ the property `URL`, a String containing the 'file:' URL, so if you leave out the
 leading 7 characters `file://`, you get the actual path. The URL may be empty
 if the Document is new and hasn't been saved yet.
 
-THe general unit for length is 1/100 mm
+The general unit for length is 1/100 mm
+
+For an explanation on how to use various uno objects in python see
+https://www.openoffice.org/de/doc/entwicklung/python_bruecke.html
+
+or
+
+http://www.openoffice.org/udk/python/python-bridge.html for the English
+version.
 
 Introspection
 ~~~~~~~~~~~~~
@@ -382,3 +396,36 @@ VK1 ist der Mitglieder-Verkaufspreis, VK0 der allgemeine Verkaufspreis
 Kassenliste braucht Spalten EAN, Bezeichnung, VKEinheit, Land, VK1, VK0
 
 
+Fleisch
+-------
+Ganze seite hochformat, Spalten: (VK1 = Mitgliederpreis)
+EAN Bezeichnung VKEinheit VK1 VK0
+
+Preise eher kleiner, EAN, Bez
+
+LiefID= URIA FAUSER UNTERWEGER
+
+eine Seite pro LiefID
+
+Lose Produkte Lebensmittel
+WG=0585, Unique Bezeichnung, da selbes Produkt von mehreren Lieferanten
+eine Seite
+
+Lose Prdukte Wasch
+WG=0590
+
+Eine Seite
+1. Saft
+WG=0400, iWG="HH"
+
+2. 5Elemente
+Lieferid
+
+WG='0070' 0200 0280 0340
+
+Tennental
+
+Lieferid=Tennnental
+WG 0020 0025 0060
+
+Am besten als Menü
