@@ -1,0 +1,21 @@
+<!--
+    menu snippet for psmacros
+
+    must be inserted in file $C/usr/config/soffice.cfg/modules/scalc/menubar/menubar.xml
+-->
+ <menu:menu menu:id="vnd.openoffice.org:CustomMenu1" menu:label="Plattsalat">
+  <menu:menupopup>
+   <menu:menu menu:id="Kassenliste" menu:label="Kassenlisten">
+    <menu:menupopup>
+     <menu:menuitem menu:id="vnd.sun.star.script:Psmacros.py$KassenlisteBrotS?language=Python&amp;location=user" menu:label="Brot Schäfer"/>
+     <menu:menuitem menu:id="vnd.sun.star.script:Psmacros.py$KassenlisteBrotW?language=Python&amp;location=user" menu:label="Brot Weber"/>
+     <menu:menuitem menu:id="vnd.sun.star.script:Psmacros.py$KassenlisteFleischFau?language=Python&amp;location=user" menu:label="Fleisch Fauser"/>
+     <menu:menuitem menu:id="vnd.sun.star.script:Psmacros.py$KassenlisteFleischUnt?language=Python&amp;location=user" menu:label="Fleisch Unterweger"/>
+     <menu:menuitem menu:id="vnd.sun.star.script:Psmacros.py$KassenlisteFleischUri?language=Python&amp;location=user" menu:label="Fleisch Uria"/>
+     <menu:menuitem menu:id="vnd.sun.star.script:Psmacros.py$KassenlisteGemuese?language=Python&amp;location=user" menu:label="Gemüse"/>
+     <menu:menuitem menu:id="vnd.sun.star.script:Psmacros.py$KassenlisteLoseWare?language=Python&amp;location=user" menu:label="Lose Ware"/>
+    </menu:menupopup>
+   </menu:menu>
+   <menu:menuitem menu:id="vnd.sun.star.script:Psmacros.py$Waagenliste?language=Python&amp;location=user" menu:label="Waagenliste"/>
+  </menu:menupopup>
+ </menu:menu>
