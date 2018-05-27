@@ -84,7 +84,7 @@ class Sheet:
 			Locale('de','DE','')
 		)
 		self.Linestyle = uno.createUnoStruct("com.sun.star.table.BorderLine2")
-		self.Linestyle.OuterLineWidth = 4
+		self.Linestyle.OuterLineWidth = 5
 		self.ColDefs = []
 		self.Boldface = uno.getConstantByName("com.sun.star.awt.FontWeight.BOLD")
 		# Get the default cell style
@@ -186,19 +186,19 @@ class Sheet:
 			h += self.getRow(i).Height
 		if h==0 or w==0: return 100 # should not happen
 		ws = 19500 / w # factor to scale to 195mm width
-		hs = 27500 / h # factor to scale to 275mm height
+		hs = 28200 / h # factor to scale to 270mm height
 		# We must use the smaller of the two for scaling.
 		# If hs is smaller, the resulting height is at the maximum,
 		# and we only might make the Columns a bit wider, but we don't
-		if hs < ws: return hs * 100
+		if hs < ws: return int(hs * 100)
 		# If ws is smaller, the resulting width is at the maximum.
 		# In that case we can still make each row a bit higher to increase
 		# readability
-		hstretch = 28600 / (h * ws)
+		hstretch = 28200 / (h * ws)
 		if hstretch > 1.5: hstretch = 1.5
 		for i in range(self.totalRows):
 			self.getRow(i).Height = self.getRow(i).Height * hstretch
-		return ws * 100
+		return int(ws * 100)
 
 
 	def addGrey(self, col):
