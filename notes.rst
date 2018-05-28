@@ -279,7 +279,7 @@ For other properties see
 `com.sun.star.table.CellProperties`
 
 Bold face is a special constant, obtained in python via::
-
+'
   bf = uno.getConstantByName("com.sun.star.awt.FontWeight.BOLD")
 
 Split/Merge cells by getting a cell range and call the .merge(True) method for
@@ -301,8 +301,28 @@ Indices for existing entries can be obtained by::
 
   numberformats.queryKey(numberformatstring, localformat, bool)
 
+Types can be obtained by importing them from the right `com.sun.star`
+module. E.g. a sheet has the property TitleRows, to set the rows that will be
+printed on every page on the top, if the printout runs over several pages.
+The property is of the type ``com.sun.star.table.CellRangeAddress``.
+The constructor allows each of the components Sheet, StartColumn, StartRow,
+EndColumn, EndRow to be set via keyword arguments. So the following code will
+make Row 0 and 1 be repeated on top of every printed page (sheet is the
+spreadsheet object)::
 
+  from com.sun.star.table import CellRangeAddress
+  sheet.setTitleRows(CellRangeAddress(StartRow=0,EndRow=1)
 
+To set only part of a cell text in boldface, you need a cursor, move it (the
+second argument is True to expand the selection) and then set the property::
+
+  cell = sheet.getCellByPosition(1,0)
+  cur  = cell.Text.createTextCuror()
+  cur.goLeft(4, False)
+  cur.goLeft(3. True)
+  cur.setPropertyValue("CharWeight", bf)
+
+Where bf is obtained as above.
 
 Page properties
 ~~~~~~~~~~~~~~~
@@ -317,6 +337,7 @@ BottomMargin (all in hundredths of a millimeter, or 10 µm::
  
   DefPage.LeftMargin = 1000
   DefPage.RightMargin = 1000
+  DefPage.IsLandscape = True
 
 
 Using a database
