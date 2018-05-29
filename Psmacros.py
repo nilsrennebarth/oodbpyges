@@ -4,6 +4,9 @@ import uno
 import types
 from com.sun.star.lang import Locale
 from com.sun.star.table.CellVertJustify import CENTER as vertCenter
+from com.sun.star.table.CellHoriJustify import CENTER as horCenter
+from com.sun.star.table.CellHoriJustify import RIGHT as horRight
+from com.sun.star.table import CellRangeAddress
 
 class BioOfficeConn:
 	"""Connection to our Bio-Office database"""
@@ -61,16 +64,20 @@ class ColumnDef(types.SimpleNamespace):
 		greyUnit=False,
 		tryOptWidth=False,
 		width=10,
-		height=12
+		height=12,
+		hcenter=False,
+		hright=False
 	)
+
 	def __init__(self, **opts):
 		self.__dict__.update(ColumnDef.colDefaults)
 		super().__init__(**opts)
 
+
 class Sheet:
 	"""A single sheet to be filled with tables"""
 
-	def __init__(self, name, cols):
+	def __init__(self, name, cols, titlerows=0):
 		desktop = XSCRIPTCONTEXT.getDesktop()
 		# Create a new calc and use its first sheet
 		self.calc = desktop.loadComponentFromURL(
@@ -79,6 +86,7 @@ class Sheet:
 		self.sheet = self.calc.Sheets.getByIndex(0)
 		self.sheet.Name = name
 		self.cols = cols
+		self.titlerows = titlerows
 		self.currencyformat = self.calc.NumberFormats.getStandardFormat(
 			uno.getConstantByName("com.sun.star.util.NumberFormat.CURRENCY"),
 			Locale('de','DE','')
@@ -105,8 +113,9 @@ class Sheet:
 	def getRow(self, row):
 		return self.sheet.getRows().getByIndex(row)
 
-	def addLines(self, x, y, n):
-		"""Add lines around all cells in part of a row"""
+	def styleBlock(self, x, y, n):
+		"""Style a row, Blocks with lines everywhere.
+		"""
 		cells = self.sheet.getCellRangeByPosition(x,y,x+n-1,y)
 		cells.LeftBorder   = self.Linestyle
 		cells.RightBorder  = self.Linestyle
@@ -115,12 +124,22 @@ class Sheet:
 		cells.ParaRightMargin = 100
 		cells.ParaLeftMargin  = 100
 
-	def addData(self, *lists):
+	def styleAltGrey(self, x, y, n):
+		"""Style a row, Alternating grey background
+		"""
+		self.getCell(x,y).LeftBorder = self.Linestyle
+		self.getCell(x+n-1,y).RightBorder = self.Linestyle
+		if (y & 1) == 1:
+			cells = self.sheet.getCellRangeByPosition(x,y,x+n-1,y)
+			cells.CellBackColor = 0xdddddd
+
+	def addData(self, *lists, style = 'Block'):
+		mysheet=self
 
 		class Cellpos:
 			def __init__(self, cols, rows):
 				self.x = 0
-				self.y = 0
+				self.y = mysheet.titlerows
 				self.cols = cols
 				self.rows = rows
 
@@ -128,9 +147,9 @@ class Sheet:
 				# go one down
 				self.y += 1
 				# if at bottom row, go to top and left
-				if self.y == self.rows:
+				if self.y == self.rows + mysheet.titlerows:
 					self.x = self.x + self.cols + 1
-					self.y = 0
+					self.y = mysheet.titlerows
 
 		# N is sum of list members
 		N = 0
@@ -154,6 +173,7 @@ class Sheet:
 		rest = self.totalRows * self.cols - needed
 
 		pos = Cellpos(self.colCols, self.totalRows)
+		styler = getattr(self, 'style'+style)
 		for list in lists:
 			self.HeaderPositions.append(Pos(pos.x, pos.y))
 			# advance once, to get room for the label
@@ -167,7 +187,7 @@ class Sheet:
 						cell.Value  = val
 					if isinstance(val, float):
 						cell.NumberFormat = self.currencyformat
-				self.addLines(pos.x, pos.y, self.colCols)
+				styler(pos.x, pos.y, self.colCols)
 				pos.advance()
 			# advance once at the end of a list
 			pos.advance()
@@ -200,12 +220,38 @@ class Sheet:
 			self.getRow(i).Height = self.getRow(i).Height * hstretch
 		return int(ws * 100)
 
+	def getOptimalScaleExt(self, landscape, pages):
+		nrows = (self.totalRows + pages-1) // pages
+		w = 0
+		for i in range(self.totalCols):
+			w += self.getCol(i).Width
+		h=0
+		for i in range(nrows):
+			h += self.getRow(i+self.titlerows).Height
+		for i in range(self.titlerows):
+			h += self.getRow(i).Height
+		if h==0 or w==0: return 100 # should not happen
+		if landscape:
+			towidth = 28200
+			toheight = 19500
+		else:
+			towidth = 19500
+			toheight = 28200
+		ws = towidth / w
+		hs = toheight / h
+		if hs < ws: return int(hs * 100)
+		hstretch = toheight / (h * ws)
+		if hstretch > 1.5: hstretch = 1.5
+		for i in range(self.titlerows, self.totalRows):
+			self.getRow(i).Height = self.getRow(i).Height * hstretch
+		return int(ws * 100)
 
 	def addGrey(self, col):
 		for i in range(self.totalRows):
 			cell = self.getCell(col, i)
 			if len(cell.String) == 2 and cell.String != 'Kg':
-				cell.CellBackColor = 0xdddddd
+				# cell.CellBackColor = 0xdddddd
+				cell.CharWeight = self.Boldface
 
 	def formatCol(self, i, cdef):
 		col = self.getCol(i)
@@ -221,6 +267,8 @@ class Sheet:
 			self.addGrey(i)
 		if cdef.height != 12:
 			col.CharHeight = cdef.height
+		if cdef.hright:
+			col.HoriJustify = horRight
 		col.VertJustify = vertCenter
 
 	def formatColumns(self):
@@ -238,7 +286,7 @@ class Sheet:
 			cell.CharHeight = 14
 			cell.CharWeight = self.Boldface
 
-	def setPageStyle(self):
+	def setPageStyle(self, landscape=False, pages=1):
 		defp = self.calc.StyleFamilies.PageStyles.getByName("Default")
 		defp.LeftMargin   = 500
 		defp.TopMargin    = 500
@@ -247,8 +295,30 @@ class Sheet:
 		defp.HeaderIsOn=False
 		defp.FooterIsOn=False
 		defp.CenterHorizontally=True
-		defp.CenterVertically=True
-		defp.PageScale = self.getOptimalScale()
+		defp.CenterVertically=False
+		if landscape or pages > 1:
+			if landscape:
+				defp.Width = 29700
+				defp.Height = 21000
+				defp.IsLandscape = True
+			defp.PageScale = self.getOptimalScaleExt(landscape, pages)
+		else:
+			defp.PageScale = self.getOptimalScale()
+
+	def setHeaderRow(self, titles):
+		self.sheet.setTitleRows(CellRangeAddress(StartRow=0, EndRow=0))
+		for i in range(self.cols):
+			for title in titles:
+				pos = title[0]
+				cdef = title[2]
+				cell = self.getCell(i * (self.colCols + 1) + pos, 0)
+				cell.String  = title[1]
+				if cdef.bold:
+					cell.CharWeight = self.Boldface
+				if cdef.height != 12:
+					cell.CharHeight = cdef.height
+				if cdef.hcenter:
+					cell.HoriJustify = horCenter
 
 def Waagenliste(*args):
 	"""Lists for the electronic balances
@@ -260,30 +330,38 @@ def Waagenliste(*args):
 
 	db = BioOfficeConn()
 
-	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VK1", "VKEinheit" ' \
+	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VK1", ' \
+	 + '                   "VK0", "VKEinheit" '\
 	 + 'FROM "V_Artikelinfo" ' \
 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
 	 + 'ORDER BY "Bezeichnung"'
 
 	# Obtain lists from DB via sql query
-	listGemuese = db.queryResult(sql % 1, 'ISDS')
-	listObst    = db.queryResult(sql % 3, 'ISDS')
+	listGemuese = db.queryResult(sql % 1, 'ISSDDS')
+	listObst    = db.queryResult(sql % 3, 'ISSDDS')
 
 	# Use a consistant capitalization for the unit
-	for r in listGemuese: r[3] = r[3].capitalize()
-	for r in listObst:    r[3] = r[3].capitalize()
+	for r in listGemuese: r[5] = r[5].capitalize()
+	for r in listObst:    r[5] = r[5].capitalize()
 
-	sheet = Sheet('Waagenliste', 2)
-	sheet.addData(listGemuese, listObst)
+	sheet = Sheet('Waagenliste', 2, titlerows=1)
+	sheet.addData(listGemuese, listObst, style='AltGrey')
 	sheet.addColumns([
 		ColumnDef(width=10, bold=True),
-		ColumnDef(width=50, tryOptWidth=True),
-		ColumnDef(width=17),
-		ColumnDef(width=10, greyUnit=True)
+		ColumnDef(width=55, bold=True, tryOptWidth=True),
+		ColumnDef(width=10),
+		ColumnDef(width=21),
+		ColumnDef(width=21),
+		ColumnDef(width=12, greyUnit=True, hright=True)
 	]);
 	sheet.formatColumns()
 	sheet.setListLabels("Gemüse", "Obst")
-	sheet.setPageStyle()
+	sheet.setHeaderRow([
+		[2,'Land',            ColumnDef(hcenter=True, height=9)],
+		[3,'Mitglieder',      ColumnDef(hcenter=True, height=10, bold=True)],
+		[4,'Nicht-\nmitglieder', ColumnDef(hcenter=True, height=10, bold=True)]
+	])
+	sheet.setPageStyle(landscape=True, pages=2)
 	
 	return None
 
