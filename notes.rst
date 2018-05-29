@@ -311,7 +311,7 @@ make Row 0 and 1 be repeated on top of every printed page (sheet is the
 spreadsheet object)::
 
   from com.sun.star.table import CellRangeAddress
-  sheet.setTitleRows(CellRangeAddress(StartRow=0,EndRow=1)
+  sheet.setTitleRows(CellRangeAddress(StartRow=0,EndRow=1))
 
 To set only part of a cell text in boldface, you need a cursor, move it (the
 second argument is True to expand the selection) and then set the property::
