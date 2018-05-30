@@ -6,6 +6,7 @@ from com.sun.star.lang import Locale
 from com.sun.star.table.CellVertJustify import CENTER as vertCenter
 from com.sun.star.table.CellHoriJustify import CENTER as horCenter
 from com.sun.star.table.CellHoriJustify import RIGHT as horRight
+from com.sun.star.table.CellHoriJustify import LEFT as horLeft
 from com.sun.star.table import CellRangeAddress
 
 class BioOfficeConn:
@@ -66,7 +67,8 @@ class ColumnDef(types.SimpleNamespace):
 		width=10,
 		height=12,
 		hcenter=False,
-		hright=False
+		hright=False,
+		hleft=False
 	)
 
 	def __init__(self, **opts):
@@ -232,16 +234,16 @@ class Sheet:
 			h += self.getRow(i).Height
 		if h==0 or w==0: return 100 # should not happen
 		if landscape:
-			towidth = 28200
-			toheight = 19500
+			towidth = 28400
+			toheight = 19800
 		else:
-			towidth = 19500
-			toheight = 28200
+			towidth = 19800
+			toheight = 28400
 		ws = towidth / w
 		hs = toheight / h
 		if hs < ws: return int(hs * 100)
 		hstretch = toheight / (h * ws)
-		if hstretch > 1.5: hstretch = 1.5
+		if hstretch > 1.8: hstretch = 1.8
 		for i in range(self.titlerows, self.totalRows):
 			self.getRow(i).Height = self.getRow(i).Height * hstretch
 		return int(ws * 100)
@@ -269,6 +271,8 @@ class Sheet:
 			col.CharHeight = cdef.height
 		if cdef.hright:
 			col.HoriJustify = horRight
+		if cdef.hleft:
+			col.HoriJustify = horLeft
 		col.VertJustify = vertCenter
 
 	def formatColumns(self):
@@ -278,12 +282,12 @@ class Sheet:
 			if t < self.cols-1:
 				self.getCol((t+1) * (self.colCols + 1) - 1).Width = 800
 
-	def setListLabels(self, *labels):
+	def setListLabels(self, *labels, cheight=14):
 		for i,l in enumerate(labels):
 			p = self.HeaderPositions[i]
 			cell = self.getCell(p.x + 1, p.y)
 			cell.String = l
-			cell.CharHeight = 14
+			cell.CharHeight = cheight
 			cell.CharWeight = self.Boldface
 
 	def setPageStyle(self, landscape=False, pages=1):
@@ -347,15 +351,15 @@ def Waagenliste(*args):
 	sheet = Sheet('Waagenliste', 2, titlerows=1)
 	sheet.addData(listGemuese, listObst, style='AltGrey')
 	sheet.addColumns([
-		ColumnDef(width=10, bold=True),
-		ColumnDef(width=55, bold=True, tryOptWidth=True),
-		ColumnDef(width=10),
-		ColumnDef(width=21),
-		ColumnDef(width=21),
-		ColumnDef(width=12, greyUnit=True, hright=True)
+		ColumnDef(height=13, width=10, bold=True, hleft=True),
+		ColumnDef(height=13, width=57, bold=True, tryOptWidth=True),
+		ColumnDef(width=7),
+		ColumnDef(height=14, width=21),
+		ColumnDef(height=14, width=21),
+		ColumnDef(width=8, greyUnit=True, hright=True)
 	]);
 	sheet.formatColumns()
-	sheet.setListLabels("Gemüse", "Obst")
+	sheet.setListLabels("Gemüse", "Obst", cheight=15)
 	sheet.setHeaderRow([
 		[2,'Land',            ColumnDef(hcenter=True, height=9)],
 		[3,'Mitglieder',      ColumnDef(hcenter=True, height=10, bold=True)],
