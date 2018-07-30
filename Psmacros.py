@@ -109,6 +109,11 @@ class Sheet:
 	def getCell(self, x, y):
 		return self.sheet.getCellByPosition(x, y)
 
+	def getMergeCell(self, x, y):
+		r = self.sheet.getCellRangeByPosition(x,y,x,y+1)
+		r.merge(True)
+		return self.sheet.getCellByPosition(x,y)
+
 	def getCol(self, col):
 		return self.sheet.getColumns().getByIndex(col)
 
@@ -196,6 +201,37 @@ class Sheet:
 			if rest > 0:
 				pos.advance()
 				rest -= 1
+
+	def addPagelistrow(self, row):
+		# EAN
+		cell = self.getMergeCell(0, self.crow)
+		cell.Value = int(row[0])
+		cell = self.getMergeCell(1, self.crow)
+		cell.String = row[1]
+		cell = self.getCell(2, self.crow)
+		cell.String = row[2]
+		cell = self.getCell(2, self.crow+1)
+		cell.String = row[3]
+		cell = self.getMergeCell(3, self.crow)
+		cell.Value = row[4]
+		cell.NumberFormat = self.currencyformat
+		cell = self.getMergeCell(4, self.crow)
+		cell.Value = row[5]
+		cell.NumberFormat = self.currencyformat
+		self.crow += 2
+
+	def addPagelist(self, *lists):
+		"""Add a single page lists in fixed layout"""
+		self.crow = self.titlerows
+		self.colCols = len(lists[0][0])
+		self.HeaderPositions = []
+		self.totalCols = self.cols * (self.colCols + 1) - 1
+		for list in lists:
+			if self.crow > self.titlerows:
+				self.getRow(self.crow).IsStartOfNewPage = True
+			for row in list:
+				self.addPagelistrow(row)
+
 
 	def getOptimalScale(self):
 		"""Calculate the optimal scale factor in percent
@@ -323,6 +359,54 @@ class Sheet:
 					cell.CharHeight = cdef.height
 				if cdef.hcenter:
 					cell.HoriJustify = horCenter
+
+
+def Waagenlisten(*args):
+	"""Lists for the electronic balances
+
+	For each of the 7 locations create a landscape formatted
+	page with large items, all on one sheet with page breaks
+	ready to print.
+	"""
+
+	locs = [ 'karotte', 'kartoffel', 'kühl links', 'kühl rechts',
+			'tomate', 'zitrone', 'zwiebel' ]
+
+	db = BioOfficeConn()
+
+	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", ' \
+	 +                    '"VK1", "VK0" ' \
+	 + 'FROM "V_Artikelinfo" ' \
+	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' ' \
+	 +   'AND "WG" IN (\'0001\', \'0003\') AND "iWG" = \'%s\' ' \
+	 + 'ORDER BY "Bezeichnung"'
+
+	lists = []
+
+	for loc in locs:
+		# Obtain list for location
+		l = db.queryResult(sql % loc, 'ISSSDD')
+		# Use consistent capitalization for the unit
+		for r in l: r[3] = r[3].capitalize()
+		lists.append(l)
+
+	sheet = Sheet('Waagenliste', 1, titlerows=1)
+	sheet.addPagelist(*lists)
+
+	sheet.addColumns([
+		ColumnDef(height=20, width=20, bold=True, hleft=True),
+		ColumnDef(height=20, width=100, bold=True, tryOptWidth=True),
+		ColumnDef(width=7),
+		ColumnDef(height=20, width=35),
+		ColumnDef(height=20, width=35),
+	])
+	sheet.formatColumns()
+	sheet.setHeaderRow([
+		[2,'',                ColumnDef(hcenter=True, height=9)],
+		[3,'Mitglieder',      ColumnDef(hcenter=True, height=10, bold=True)],
+		[4,'Nichtmitglieder', ColumnDef(hcenter=True, height=10, bold=True)]
+	])
+	# sheet.setPageStyle(landscape=True)
 
 def Waagenliste(*args):
 	"""Lists for the electronic balances
@@ -580,6 +664,7 @@ def KassenlisteLoseWare(*args):
 
 # Only export the public functions as macros
 g_exportedScripts = [
+	Waagenlisten,
 	Waagenliste,
 	WaagenlisteUp,
 	KassenlisteGemuese,
