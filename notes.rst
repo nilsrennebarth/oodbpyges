@@ -286,7 +286,7 @@ Split/Merge cells by getting a cell range and call the .merge(True) method for
 merging, merge(False) for splitting. The option in the dialog where content is
 moved up is not available.
 
-Number formats are of type Long, because they are specified by and index into
+Number formats are of type Long, because they are specified by an index into
 a table where rather complex format may be specified. All numbre formats of
 a document are listed in its `NumberFormats` property. There are some standard
 formats defined for a locale, `CURRENCY`, `DATE`, `TIME`. `PERCENT`, ...
@@ -323,6 +323,8 @@ second argument is True to expand the selection) and then set the property::
   cur.setPropertyValue("CharWeight", bf)
 
 Where bf is obtained as above.
+
+To add or remove manual breaks use the IsStartOfNewPage property of a row.
 
 Page properties
 ~~~~~~~~~~~~~~~
