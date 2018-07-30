@@ -369,6 +369,11 @@ The purpose of the query services available at a DataSource is to define and
 edit queries. The query services by themselves do not offer methods to execute
 queries.
 
+Plattsalat servers
+------------------
+The python program is stored on ``vserver2:/srv/samba/data/software/psmacros/``
+as Psmacros.py User is nils-rennebarth
+
 
 Libre Office general notes
 --------------------------
