@@ -1,0 +1,46 @@
+#!/usr/bin/python3 -i
+import code
+import uno
+import time
+from subprocess import Popen
+
+from com.sun.star.lang import Locale
+from com.sun.star.connection import NoConnectException
+from com.sun.star.table.CellVertJustify import CENTER as vertCenter
+from com.sun.star.table.CellHoriJustify import CENTER as horCenter
+from com.sun.star.table.CellHoriJustify import RIGHT as horRight
+from com.sun.star.table.CellHoriJustify import LEFT as horLeft
+
+
+# Spawn off libreoffice process with special arguments
+lo = Popen([
+	'/usr/bin/libreoffice',
+	'--calc',
+	'--accept=socket,host=localhost,port=2002;urp;StartOffice.ServiceManager'
+	])
+
+localContext = uno.getComponentContext();
+resolver = localContext.ServiceManager.createInstanceWithContext(
+	 "com.sun.star.bridge.UnoUrlResolver",
+	localContext)
+# Wait until we can connect to libreoffice
+while True:
+	try:
+		ctx = resolver.resolve(
+			"uno:socket,host=localhost,port=2002;urp;StarOffice.ComponentContext"
+		)
+		break
+	except NoConnectException:
+		time.sleep(1)
+
+smgr = ctx.ServiceManager
+desktop = smgr.createInstanceWithContext("com.sun.star.frame.Desktop", ctx)
+model = desktop.getCurrentComponent()
+
+# Apparently, the current component must first appear on screen,
+# so wait a while
+time.sleep(5)
+
+calc = desktop.getCurrentComponent()
+sheet = calc.Sheets.getByIndex(0)
+
