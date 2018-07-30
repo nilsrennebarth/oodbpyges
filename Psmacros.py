@@ -326,10 +326,12 @@ class Sheet:
 
 def Waagenliste(*args):
 	"""Lists for the electronic balances
-	
+
 	Create a ready to print spreadsheet for the
 	electronic balances, containing the EAN numbers,
 	the names and the unit
+
+	The list is in landscape format and fitted to two pages
 	"""
 
 	db = BioOfficeConn()
@@ -367,6 +369,45 @@ def Waagenliste(*args):
 	])
 	sheet.setPageStyle(landscape=True, pages=2)
 	
+	return None
+
+def WaagenlisteUp(*args):
+	"""Lists for the electronic balances
+
+	Create a ready to print spreadsheet for the
+	electronic balances, containing the EAN numbers,
+	the names and the unit.
+
+	The list is in portrait format and fitted onto a single page.
+	"""
+
+	db = BioOfficeConn()
+
+	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VK1", "VKEinheit" ' \
+	 + 'FROM "V_Artikelinfo" ' \
+	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
+	 + 'ORDER BY "Bezeichnung"'
+
+	# Obtain lists from DB via sql query
+	listGemuese = db.queryResult(sql % 1, 'ISDS')
+	listObst    = db.queryResult(sql % 3, 'ISDS')
+
+	# Use a consistant capitalization for the unit
+	for r in listGemuese: r[3] = r[3].capitalize()
+	for r in listObst:    r[3] = r[3].capitalize()
+
+	sheet = Sheet('Waagenliste', 2)
+	sheet.addData(listGemuese, listObst)
+	sheet.addColumns([
+		ColumnDef(width=10, bold=True),
+		ColumnDef(width=50, tryOptWidth=True),
+		ColumnDef(width=17),
+		ColumnDef(width=10, greyUnit=True)
+	]);
+	sheet.formatColumns()
+	sheet.setListLabels("Gemüse", "Obst")
+	sheet.setPageStyle()
+
 	return None
 
 
@@ -540,6 +581,7 @@ def KassenlisteLoseWare(*args):
 # Only export the public functions as macros
 g_exportedScripts = [
 	Waagenliste,
+	WaagenlisteUp,
 	KassenlisteGemuese,
 	KassenlisteBrotS,
 	KassenlisteBrotW,
