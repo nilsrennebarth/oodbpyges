@@ -220,17 +220,20 @@ class Sheet:
 		cell.NumberFormat = self.currencyformat
 		self.crow += 2
 
-	def addPagelist(self, *lists):
+	def addPagelist(self, *lists, style='Block', hstretch=1.2):
 		"""Add a single page lists in fixed layout"""
 		self.crow = self.titlerows
 		self.colCols = len(lists[0][0])
 		self.HeaderPositions = []
-		self.totalCols = self.cols * (self.colCols + 1) - 1
+		self.totalCols = self.colCols
+		styler = getattr(self, 'style'+style)
 		for list in lists:
 			if self.crow > self.titlerows:
 				self.getRow(self.crow).IsStartOfNewPage = True
 			for row in list:
 				self.addPagelistrow(row)
+				styler(0, self.crow-2, self.colCols-1)
+				styler(0, self.crow-1, self.colCols-1)
 
 
 	def getOptimalScale(self):
@@ -284,12 +287,15 @@ class Sheet:
 			self.getRow(i).Height = self.getRow(i).Height * hstretch
 		return int(ws * 100)
 
-	def addGrey(self, col):
+	def pieceMarker(self, x, y):
+		cell = self.getCell(x,y)
+		if len(cell.String) == 2 and cell.String != 'Kg':
+			# cell.CellBackColor = 0xdddddd
+			cell.CharWeight = self.Boldface
+
+	def pieceMarkCol(self, col):
 		for i in range(self.totalRows):
-			cell = self.getCell(col, i)
-			if len(cell.String) == 2 and cell.String != 'Kg':
-				# cell.CellBackColor = 0xdddddd
-				cell.CharWeight = self.Boldface
+			self.pieceMarker(col, i)
 
 	def formatCol(self, i, cdef):
 		col = self.getCol(i)
@@ -302,7 +308,7 @@ class Sheet:
 		if cdef.bold:
 			col.CharWeight = self.Boldface
 		if cdef.greyUnit:
-			self.addGrey(i)
+			self.pieceMarkCol(i)
 		if cdef.height != 12:
 			col.CharHeight = cdef.height
 		if cdef.hright:
@@ -326,7 +332,7 @@ class Sheet:
 			cell.CharHeight = cheight
 			cell.CharWeight = self.Boldface
 
-	def setPageStyle(self, landscape=False, pages=1):
+	def setPageStyle(self, landscape=False, maxscale=True, pages=1):
 		defp = self.calc.StyleFamilies.PageStyles.getByName("Default")
 		defp.LeftMargin   = 500
 		defp.TopMargin    = 500
@@ -336,14 +342,15 @@ class Sheet:
 		defp.FooterIsOn=False
 		defp.CenterHorizontally=True
 		defp.CenterVertically=False
-		if landscape or pages > 1:
-			if landscape:
-				defp.Width = 29700
-				defp.Height = 21000
-				defp.IsLandscape = True
-			defp.PageScale = self.getOptimalScaleExt(landscape, pages)
-		else:
-			defp.PageScale = self.getOptimalScale()
+		if landscape:
+			defp.Width = 29700
+			defp.Height = 21000
+			defp.IsLandscape = True
+		if maxscale:
+			if landscape or pages > 1:
+				defp.PageScale = self.getOptimalScaleExt(landscape, pages)
+			else:
+				defp.PageScale = self.getOptimalScale()
 
 	def setHeaderRow(self, titles):
 		self.sheet.setTitleRows(CellRangeAddress(StartRow=0, EndRow=0))
@@ -394,11 +401,11 @@ def Waagenlisten(*args):
 	sheet.addPagelist(*lists)
 
 	sheet.addColumns([
-		ColumnDef(height=20, width=20, bold=True, hleft=True),
-		ColumnDef(height=20, width=100, bold=True, tryOptWidth=True),
-		ColumnDef(width=7),
-		ColumnDef(height=20, width=35),
-		ColumnDef(height=20, width=35),
+		ColumnDef(height=24, width=18, bold=True, hleft=True),
+		ColumnDef(height=29, width=100, bold=True),
+		ColumnDef(width=8),
+		ColumnDef(height=22, width=35),
+		ColumnDef(height=22, width=35),
 	])
 	sheet.formatColumns()
 	sheet.setHeaderRow([
@@ -406,7 +413,7 @@ def Waagenlisten(*args):
 		[3,'Mitglieder',      ColumnDef(hcenter=True, height=10, bold=True)],
 		[4,'Nichtmitglieder', ColumnDef(hcenter=True, height=10, bold=True)]
 	])
-	# sheet.setPageStyle(landscape=True)
+	sheet.setPageStyle(maxscale=False)
 
 def Waagenliste(*args):
 	"""Lists for the electronic balances
