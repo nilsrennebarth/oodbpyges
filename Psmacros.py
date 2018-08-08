@@ -376,7 +376,7 @@ def Waagenlisten(*args):
 	ready to print.
 	"""
 
-	locs = [ 'karotte', 'kartoffel', 'kühl links', 'kühl rechts',
+	locs = [ 'äpfel', 'karotte', 'kartoffel', 'kühl links', 'kühl rechts',
 			'tomate', 'zitrone', 'zwiebel' ]
 
 	db = BioOfficeConn()
