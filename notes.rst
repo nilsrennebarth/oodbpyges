@@ -189,6 +189,13 @@ or
 http://www.openoffice.org/udk/python/python-bridge.html for the English
 version.
 
+There is a BASIC Programming guide as well, at
+https://wiki.openoffice.org/wiki/Documentation/BASIC_Guide
+that is useful for python programming as well, because it mentions the proper
+services, interface names and concepts, The documentation for Header and
+Footers in spreadsheets e.g. was at
+https://wiki.openoffice.org/wiki/Documentation/BASIC_Guide/Formatting_Spreadsheet_Documents
+
 Introspection
 ~~~~~~~~~~~~~
 There is an
