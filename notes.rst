@@ -341,6 +341,22 @@ BottomMargin (all in hundredths of a millimeter, or 10 µm::
   DefPage.RightMargin = 1000
   DefPage.IsLandscape = True
 
+The Content of headers and footers can be set by the HeaderFooterContent
+service. The service can be obtained by the page style (`DefPage` in the
+preceding example) as {Right|Left}Page{Header|Footer}Content, and offers three
+properties: `LeftText`, `CenterText` and `RightText`. Obviously, Header is for
+the headers and footer for the footers. Right is for odd numbered pages and
+Left for even numbered pages. If Left is not set, all pages are done the style
+set by Right.
+
+You need to obtain the service as an object, modify the Properties and then
+assign it back to the service to make the changes take effect::
+
+  hs = DefPage.RightPageHeaderContent
+  hs.LeftText.String = "foobar"
+  DefPage.RightPageHeaderContent = hs
+
+
 
 Using a database
 ~~~~~~~~~~~~~~~~
