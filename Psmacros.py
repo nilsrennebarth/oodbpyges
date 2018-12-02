@@ -1,7 +1,8 @@
 # Plattsalat specific python macros
 import collections
-import uno
+import datetime
 import types
+import uno
 from com.sun.star.lang import Locale
 from com.sun.star.table.CellVertJustify import CENTER as vertCenter
 from com.sun.star.table.CellHoriJustify import CENTER as horCenter
@@ -261,7 +262,7 @@ class Sheet:
 			self.getRow(i).Height = self.getRow(i).Height * hstretch
 		return int(ws * 100)
 
-	def getOptimalScaleExt(self, landscape, pages):
+	def getOptimalScaleExt(self, landscape, pages, header=False):
 		nrows = (self.totalRows + pages-1) // pages
 		w = 0
 		for i in range(self.totalCols):
@@ -278,6 +279,8 @@ class Sheet:
 		else:
 			towidth = 19800
 			toheight = 28400
+		if header:
+			toheight -= 900
 		ws = towidth / w
 		hs = toheight / h
 		if hs < ws: return int(hs * 100)
@@ -332,7 +335,7 @@ class Sheet:
 			cell.CharHeight = cheight
 			cell.CharWeight = self.Boldface
 
-	def setPageStyle(self, landscape=False, maxscale=True, pages=1):
+	def setPageStyle(self, landscape=False, maxscale=True, pages=1, date=False):
 		defp = self.calc.StyleFamilies.PageStyles.getByName("Default")
 		defp.LeftMargin   = 500
 		defp.TopMargin    = 500
@@ -346,11 +349,17 @@ class Sheet:
 			defp.Width = 29700
 			defp.Height = 21000
 			defp.IsLandscape = True
+		if date:
+			defp.HeaderIsOn = True
+			hs = defp.RightPageHeaderContent
+			hs.LeftText.String = datetime.date.today().strftime('%d.%m.%Y')
+			hs.CenterText.String = ''
+			defp.RightPageHeaderContent = hs
 		if maxscale:
 			if landscape or pages > 1:
-				defp.PageScale = self.getOptimalScaleExt(landscape, pages)
+				defp.PageScale = self.getOptimalScaleExt(landscape, pages, header=date)
 			else:
-				defp.PageScale = self.getOptimalScale()
+				defp.PageScale = self.getOptimalScale(header=date)
 
 	def setHeaderRow(self, titles):
 		self.sheet.setTitleRows(CellRangeAddress(StartRow=0, EndRow=0))
@@ -413,7 +422,7 @@ def Waagenlisten(*args):
 		[3,'Mitglieder',      ColumnDef(hcenter=True, height=10, bold=True)],
 		[4,'Nichtmitglieder', ColumnDef(hcenter=True, height=10, bold=True)]
 	])
-	sheet.setPageStyle(maxscale=False)
+	sheet.setPageStyle(maxscale=False, date=True)
 
 def Waagenliste(*args):
 	"""Lists for the electronic balances
@@ -458,7 +467,7 @@ def Waagenliste(*args):
 		[3,'Mitglieder',      ColumnDef(hcenter=True, height=10, bold=True)],
 		[4,'Nicht-\nmitglieder', ColumnDef(hcenter=True, height=10, bold=True)]
 	])
-	sheet.setPageStyle(landscape=True, pages=2)
+	sheet.setPageStyle(landscape=True, pages=2, date=True)
 	
 	return None
 
