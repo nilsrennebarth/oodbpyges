@@ -237,7 +237,7 @@ class Sheet:
 				styler(0, self.crow-1, self.colCols-1)
 
 
-	def getOptimalScale(self):
+	def getOptimalScale(self, header=False):
 		"""Calculate the optimal scale factor in percent
 		"""
 		w=0
