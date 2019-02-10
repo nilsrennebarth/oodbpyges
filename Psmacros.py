@@ -1,6 +1,7 @@
 # Plattsalat specific python macros
 import collections
 import datetime
+import numbers
 import types
 import uno
 from com.sun.star.lang import Locale
@@ -189,10 +190,10 @@ class Sheet:
 			for row in list:
 				for i, val in enumerate(row):
 					cell = self.getCell(pos.x + i, pos.y)
-					if isinstance(val, str):
-						cell.String = val
+					if isinstance(val, numbers.Number) and val < 2000000000:
+						cell.Value = val
 					else:
-						cell.Value  = val
+						cell.String = val
 					if isinstance(val, float):
 						cell.NumberFormat = self.currencyformat
 				styler(pos.x, pos.y, self.colCols)
@@ -666,7 +667,7 @@ def KassenlisteLoseWare(*args):
 	sheet = Sheet('KassenlisteLoseWare', 2)
 	sheet.addData(lst1, lst2, lst3, lst4, lst5)
 	sheet.addColumns([
-		ColumnDef(width=17, bold=True),        # EAN
+		ColumnDef(width=32, bold=True),        # EAN
 		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
 		ColumnDef(width=12, greyUnit=True),    # VKEinheit
 		ColumnDef(width=16, height=10), # Preis Mitglieder
