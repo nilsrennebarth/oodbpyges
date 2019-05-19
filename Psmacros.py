@@ -222,7 +222,11 @@ class Sheet:
 		self.crow += 2
 
 	def addPagelist(self, *lists, style='Block', hstretch=1.2):
-		"""Add a single page list in fixed layout"""
+		"""Add a single page list in fixed layout
+
+		Solely used by Wagenlisten, which produces several pages,
+		one for each location.
+		"""
 		self.crow = self.titlerows
 		self.colCols = len(lists[0][0])
 		self.HeaderPositions = []
