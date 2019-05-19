@@ -205,9 +205,8 @@ class Sheet:
 				rest -= 1
 
 	def addPagelistrow(self, row):
-		# EAN
 		cell = self.getMergeCell(0, self.crow)
-		cell.Value = int(row[0])
+		cell.String = row[0]
 		cell = self.getMergeCell(1, self.crow)
 		cell.String = row[1]
 		cell = self.getCell(2, self.crow)
@@ -223,7 +222,7 @@ class Sheet:
 		self.crow += 2
 
 	def addPagelist(self, *lists, style='Block', hstretch=1.2):
-		"""Add a single page lists in fixed layout"""
+		"""Add a single page list in fixed layout"""
 		self.crow = self.titlerows
 		self.colCols = len(lists[0][0])
 		self.HeaderPositions = []
@@ -625,14 +624,16 @@ def wglist(*args):
 	return "'" + "', '".join(args) + "'"
 
 sql_loses1 = """SELECT DISTINCT
-  "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
+  CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
+  "Bezeichnung", "VKEinheit", "VK1", "VK0"
 FROM "V_Artikelinfo"
 WHERE "LadenID" = 'PLATTSALAT'
   AND "WG" = '%s'
 ORDER BY "Bezeichnung" """
 
 sql_loses2 = """SELECT DISTINCT
-  "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
+  CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
+  "Bezeichnung", "VKEinheit", "VK1", "VK0"
 FROM "V_Artikelinfo"
 WHERE "LadenID" = 'PLATTSALAT'
   AND "WG" in (%s)
@@ -640,7 +641,8 @@ WHERE "LadenID" = 'PLATTSALAT'
 ORDER BY "Bezeichnung" """
 
 sql_loses3 = """SELECT DISTINCT
-  "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
+  CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
+  "Bezeichnung", "VKEinheit", "VK1", "VK0"
 FROM "V_Artikelinfo"
 WHERE "LadenID" = 'PLATTSALAT'
   AND "LiefID" = 'TENNENTAL'
@@ -651,13 +653,13 @@ ORDER BY "Bezeichnung" """
 def KassenlisteLoseWare(*args):
 	db = BioOfficeConn()
 
-	lst1 = db.queryResult(sql_loses1 % '0585', 'ISSDD')
-	lst2 = db.queryResult(sql_loses1 % '0590', 'ISSDD')
-	lst3 = db.queryResult(sql_loses2 % wglist('0400'), 'ISSDD')
+	lst1 = db.queryResult(sql_loses1 % '0585', 'SSSDD')
+	lst2 = db.queryResult(sql_loses1 % '0590', 'SSSDD')
+	lst3 = db.queryResult(sql_loses2 % wglist('0400'), 'SSSDD')
 	lst4 = db.queryResult(sql_loses2 %
-						  wglist('0070', '0200', '0280', '0340'), 'ISSDD')
+						  wglist('0070', '0200', '0280', '0340'), 'SSSDD')
 	lst5 = db.queryResult(sql_loses2 %
-						  wglist('0020', '0025', '0060'), 'ISSDD')
+						  wglist('0020', '0025', '0060'), 'SSSDD')
 	for r in lst1: r[2] = r[2].capitalize()
 	for r in lst2: r[2] = r[2].capitalize()
 	for r in lst3: r[2] = r[2].capitalize()
