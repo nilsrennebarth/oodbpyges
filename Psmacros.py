@@ -11,6 +11,7 @@ from com.sun.star.table.CellHoriJustify import RIGHT as horRight
 from com.sun.star.table.CellHoriJustify import LEFT as horLeft
 from com.sun.star.table import CellRangeAddress
 
+
 class BioOfficeConn:
 	"""Connection to our Bio-Office database"""
 
@@ -45,7 +46,9 @@ class BioOfficeConn:
 			result.append([meths[i](i+1) for i in range(len(meths))])
 		return result
 
+
 Pos = collections.namedtuple('Pos', 'x y')
+
 
 class ColumnDef(types.SimpleNamespace):
 	"""Options for a single column in a table
@@ -55,10 +58,10 @@ class ColumnDef(types.SimpleNamespace):
 	- width (int) width in mm
 	- height (int) char height
 	- tryOptWidth (boolean) First try to set the width to its optimum
-	  value. Only if that is too big, set it to the given width
+	. value. Only if that is too big, set it to the given width
 	- bold (boolean) set typeface to bold
 	- greyUnit (boolean) set background to grey if the text appears
-	  to represent discrete units
+	. to represent discrete units
 
 	"""
 
@@ -93,7 +96,7 @@ class Sheet:
 		self.titlerows = titlerows
 		self.currencyformat = self.calc.NumberFormats.getStandardFormat(
 			uno.getConstantByName("com.sun.star.util.NumberFormat.CURRENCY"),
-			Locale('de','DE','')
+			Locale('de', 'DE', '')
 		)
 		self.Linestyle = uno.createUnoStruct("com.sun.star.table.BorderLine2")
 		self.Linestyle.OuterLineWidth = 5
@@ -102,8 +105,7 @@ class Sheet:
 		# Get the default cell style
 		# and use it to set use a 12pt Font Size by default
 		cs = self.calc.StyleFamilies.CellStyles.getByName('Default')
-		cs.CharHeight=12
-
+		cs.CharHeight = 12
 
 	def addColumns(self, cols):
 		self.ColDefs += cols
@@ -112,9 +114,9 @@ class Sheet:
 		return self.sheet.getCellByPosition(x, y)
 
 	def getMergeCell(self, x, y):
-		r = self.sheet.getCellRangeByPosition(x,y,x,y+1)
+		r = self.sheet.getCellRangeByPosition(x, y, x, y + 1)
 		r.merge(True)
-		return self.sheet.getCellByPosition(x,y)
+		return self.sheet.getCellByPosition(x, y)
 
 	def getCol(self, col):
 		return self.sheet.getColumns().getByIndex(col)
@@ -125,25 +127,27 @@ class Sheet:
 	def styleBlock(self, x, y, n):
 		"""Style a row, Blocks with lines everywhere.
 		"""
-		cells = self.sheet.getCellRangeByPosition(x,y,x+n-1,y)
-		cells.LeftBorder   = self.Linestyle
-		cells.RightBorder  = self.Linestyle
-		cells.TopBorder    = self.Linestyle
+		cells = self.sheet.getCellRangeByPosition(x, y, x + n - 1, y)
+		cells.LeftBorder = self.Linestyle
+		cells.RightBorder = self.Linestyle
+		cells.TopBorder = self.Linestyle
 		cells.BottomBorder = self.Linestyle
 		cells.ParaRightMargin = 100
-		cells.ParaLeftMargin  = 100
+		cells.ParaLeftMargin = 100
 
 	def styleAltGrey(self, x, y, n):
 		"""Style a row, Alternating grey background
 		"""
-		self.getCell(x,y).LeftBorder = self.Linestyle
-		self.getCell(x+n-1,y).RightBorder = self.Linestyle
+		self.getCell(x, y).LeftBorder = self.Linestyle
+		self.getCell(x + n - 1, y).RightBorder = self.Linestyle
 		if (y & 1) == 1:
-			cells = self.sheet.getCellRangeByPosition(x,y,x+n-1,y)
+			cells = self.sheet.getCellRangeByPosition(
+				x, y, x + n - 1, y
+			)
 			cells.CellBackColor = 0xdddddd
 
-	def addData(self, *lists, style = 'Block'):
-		mysheet=self
+	def addData(self, *lists, style='Block'):
+		mysheet = self
 
 		class Cellpos:
 			def __init__(self, cols, rows):
@@ -169,7 +173,7 @@ class Sheet:
 		self.HeaderPositions = []
 		self.totalCols = self.cols * (self.colCols + 1) - 1
 
-		c = self.getCell(10,1)
+		# c = self.getCell(10, 1)
 		# Each list starts with a Label, using a single row
 		# then one row for each member and another row to separate
 		# the list from the next one. The total numer of rows
@@ -240,19 +244,18 @@ class Sheet:
 				styler(0, self.crow-2, self.colCols-1)
 				styler(0, self.crow-1, self.colCols-1)
 
-
 	def getOptimalScale(self, header=False):
 		"""Calculate the optimal scale factor in percent
 		"""
-		w=0
+		w = 0
 		for i in range(self.totalCols):
 			w += self.getCol(i).Width
-		h=0
+		h = 0
 		for i in range(self.totalRows):
 			h += self.getRow(i).Height
-		if h==0 or w==0: return 100 # should not happen
-		ws = 19500 / w # factor to scale to 195mm width
-		hs = 28200 / h # factor to scale to 270mm height
+		if h == 0 or w == 0: return 100  # should not happen
+		ws = 19500 / w  # factor to scale to 195mm width
+		hs = 28200 / h  # factor to scale to 270mm height
 		# We must use the smaller of the two for scaling.
 		# If hs is smaller, the resulting height is at the maximum,
 		# and we only might make the Columns a bit wider, but we don't
@@ -271,12 +274,12 @@ class Sheet:
 		w = 0
 		for i in range(self.totalCols):
 			w += self.getCol(i).Width
-		h=0
+		h = 0
 		for i in range(nrows):
 			h += self.getRow(i+self.titlerows).Height
 		for i in range(self.titlerows):
 			h += self.getRow(i).Height
-		if h==0 or w==0: return 100 # should not happen
+		if h == 0 or w == 0: return 100  # should not happen
 		if landscape:
 			towidth = 28400
 			toheight = 19800
@@ -295,7 +298,7 @@ class Sheet:
 		return int(ws * 100)
 
 	def pieceMarker(self, x, y):
-		cell = self.getCell(x,y)
+		cell = self.getCell(x, y)
 		if len(cell.String) == 2 and cell.String != 'Kg':
 			# cell.CellBackColor = 0xdddddd
 			cell.CharWeight = self.Boldface
@@ -326,13 +329,13 @@ class Sheet:
 
 	def formatColumns(self):
 		for t in range(self.cols):
-			for i,cdef in enumerate(self.ColDefs):
+			for i, cdef in enumerate(self.ColDefs):
 				self.formatCol(t * (self.colCols + 1) + i, cdef)
 			if t < self.cols-1:
 				self.getCol((t+1) * (self.colCols + 1) - 1).Width = 800
 
 	def setListLabels(self, *labels, cheight=14):
-		for i,l in enumerate(labels):
+		for i, l in enumerate(labels):
 			p = self.HeaderPositions[i]
 			cell = self.getCell(p.x + 1, p.y)
 			cell.String = l
@@ -341,14 +344,14 @@ class Sheet:
 
 	def setPageStyle(self, landscape=False, maxscale=True, pages=1, date=False):
 		defp = self.calc.StyleFamilies.PageStyles.getByName("Default")
-		defp.LeftMargin   = 500
-		defp.TopMargin    = 500
+		defp.LeftMargin = 500
+		defp.TopMargin = 500
 		defp.BottomMargin = 500
-		defp.RightMargin  = 500
-		defp.HeaderIsOn=False
-		defp.FooterIsOn=False
-		defp.CenterHorizontally=True
-		defp.CenterVertically=False
+		defp.RightMargin = 500
+		defp.HeaderIsOn = False
+		defp.FooterIsOn = False
+		defp.CenterHorizontally = True
+		defp.CenterVertically = False
 		if landscape:
 			defp.Width = 29700
 			defp.Height = 21000
@@ -372,13 +375,22 @@ class Sheet:
 				pos = title[0]
 				cdef = title[2]
 				cell = self.getCell(i * (self.colCols + 1) + pos, 0)
-				cell.String  = title[1]
+				cell.String = title[1]
 				if cdef.bold:
 					cell.CharWeight = self.Boldface
 				if cdef.height != 12:
 					cell.CharHeight = cdef.height
 				if cdef.hcenter:
 					cell.HoriJustify = horCenter
+
+
+WLSSQL = """\
+SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"
+FROM "V_Artikelinfo"
+WHERE "Waage" = 'A' AND "LadenID" = 'PLATTSALAT'
+AND "WG" IN ('0001', '0003') AND "iWG" = '%s'
+ORDER BY "Bezeichnung"'
+"""
 
 
 def Waagenlisten(*args):
@@ -389,26 +401,28 @@ def Waagenlisten(*args):
 	ready to print.
 	"""
 
-	locs = [ 'äpfel', 'karotte', 'kartoffel', 'kühl links', 'kühl rechts',
-			'tomate', 'zitrone', 'zwiebel' ]
+	locs = [
+		'äpfel', 'karotte', 'kartoffel', 'kühl links', 'kühl rechts',
+		'tomate', 'zitrone', 'zwiebel'
+	]
 
 	db = BioOfficeConn()
 
-	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", ' \
-	 +                    '"VK1", "VK0" ' \
-	 + 'FROM "V_Artikelinfo" ' \
-	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' ' \
-	 +   'AND "WG" IN (\'0001\', \'0003\') AND "iWG" = \'%s\' ' \
-	 + 'ORDER BY "Bezeichnung"'
+# 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", ' \
+# 	 +                    '"VK1", "VK0" ' \
+# 	 + 'FROM "V_Artikelinfo" ' \
+# 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' ' \
+# 	 +   'AND "WG" IN (\'0001\', \'0003\') AND "iWG" = \'%s\' ' \
+# 	 + 'ORDER BY "Bezeichnung"'
 
 	lists = []
 
 	for loc in locs:
 		# Obtain list for location
-		l = db.queryResult(sql % loc, 'ISSSDD')
+		L = db.queryResult(WLSSQL % loc, 'ISSSDD')
 		# Use consistent capitalization for the unit
-		for r in l: r[3] = r[3].capitalize()
-		lists.append(l)
+		for r in L: r[3] = r[3].capitalize()
+		lists.append(L)
 
 	sheet = Sheet('Waagenliste', 1, titlerows=1)
 	sheet.addPagelist(*lists)
@@ -422,11 +436,20 @@ def Waagenlisten(*args):
 	])
 	sheet.formatColumns()
 	sheet.setHeaderRow([
-		[2,'',                ColumnDef(hcenter=True, height=9)],
-		[3,'Mitglieder',      ColumnDef(hcenter=True, height=10, bold=True)],
-		[4,'Nichtmitglieder', ColumnDef(hcenter=True, height=10, bold=True)]
+		[2, '', ColumnDef(hcenter=True, height=9)],
+		[3, 'Mitglieder', ColumnDef(hcenter=True, height=10, bold=True)],
+		[4, 'Nichtmitglieder', ColumnDef(hcenter=True, height=10, bold=True)]
 	])
 	sheet.setPageStyle(maxscale=False, date=True)
+
+
+WLSQL = """\
+SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VK1", "VK0", "VKEinheit"
+FROM "V_Artikelinfo"
+WHERE "Waage" = 'A' AND "LadenID" = 'PLATTSALAT' AND "WG" = %i
+ORDER BY "Bezeichnung"
+"""
+
 
 def Waagenliste(*args):
 	"""Lists for the electronic balances
@@ -440,15 +463,15 @@ def Waagenliste(*args):
 
 	db = BioOfficeConn()
 
-	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VK1", ' \
-	 + '                   "VK0", "VKEinheit" '\
-	 + 'FROM "V_Artikelinfo" ' \
-	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
-	 + 'ORDER BY "Bezeichnung"'
+# 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VK1", ' \
+# 	 + '                   "VK0", "VKEinheit" '\
+# 	 + 'FROM "V_Artikelinfo" ' \
+# 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
+# 	 + 'ORDER BY "Bezeichnung"'
 
 	# Obtain lists from DB via sql query
-	listGemuese = db.queryResult(sql % 1, 'ISSDDS')
-	listObst    = db.queryResult(sql % 3, 'ISSDDS')
+	listGemuese = db.queryResult(WLSQL % 1, 'ISSDDS')
+	listObst = db.queryResult(WLSQL % 3, 'ISSDDS')
 
 	# Use a consistant capitalization for the unit
 	for r in listGemuese: r[5] = r[5].capitalize()
@@ -463,17 +486,26 @@ def Waagenliste(*args):
 		ColumnDef(height=14, width=21),
 		ColumnDef(height=14, width=21),
 		ColumnDef(width=8, greyUnit=True, hright=True)
-	]);
+	])
 	sheet.formatColumns()
 	sheet.setListLabels("Gemüse", "Obst", cheight=15)
 	sheet.setHeaderRow([
-		[2,'Land',            ColumnDef(hcenter=True, height=9)],
-		[3,'Mitglieder',      ColumnDef(hcenter=True, height=10, bold=True)],
-		[4,'Nicht-\nmitglieder', ColumnDef(hcenter=True, height=10, bold=True)]
+		[2, 'Land', ColumnDef(hcenter=True, height=9)],
+		[3, 'Mitglieder', ColumnDef(hcenter=True, height=10, bold=True)],
+		[4, 'Nicht-\nmitglieder', ColumnDef(hcenter=True, height=10, bold=True)]
 	])
 	sheet.setPageStyle(landscape=True, pages=2, date=True)
-	
+
 	return None
+
+
+WLUSQL = """\
+SELECT DISTINCT "EAN", "Bezeichnung", "VK1", "VKEinheit"
+FROM "V_Artikelinfo"
+WHERE "Waage" = 'A' AND "LadenID" = 'PLATTSALAT' AND "WG" = %i
+ORDER BY "Bezeichnung"'
+"""
+
 
 def WaagenlisteUp(*args):
 	"""Lists for the electronic balances
@@ -487,14 +519,14 @@ def WaagenlisteUp(*args):
 
 	db = BioOfficeConn()
 
-	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VK1", "VKEinheit" ' \
-	 + 'FROM "V_Artikelinfo" ' \
-	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
-	 + 'ORDER BY "Bezeichnung"'
+# 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VK1", "VKEinheit" ' \
+# 	 + 'FROM "V_Artikelinfo" ' \
+# 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
+# 	 + 'ORDER BY "Bezeichnung"'
 
 	# Obtain lists from DB via sql query
-	listGemuese = db.queryResult(sql % 1, 'ISDS')
-	listObst    = db.queryResult(sql % 3, 'ISDS')
+	listGemuese = db.queryResult(WLUSQL % 1, 'ISDS')
+	listObst = db.queryResult(WLUSQL % 3, 'ISDS')
 
 	# Use a consistant capitalization for the unit
 	for r in listGemuese: r[3] = r[3].capitalize()
@@ -507,7 +539,7 @@ def WaagenlisteUp(*args):
 		ColumnDef(width=50, tryOptWidth=True),
 		ColumnDef(width=17),
 		ColumnDef(width=10, greyUnit=True)
-	]);
+	])
 	sheet.formatColumns()
 	sheet.setListLabels("Gemüse", "Obst")
 	sheet.setPageStyle()
@@ -515,18 +547,26 @@ def WaagenlisteUp(*args):
 	return None
 
 
+KLGSQL = """\
+SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"
+FROM "V_Artikelinfo"
+WHERE "Waage" = 'A' AND "LadenID" = 'PLATTSALAT' AND "WG" = %i
+ORDER BY "Bezeichnung"
+"""
+
+
 def KassenlisteGemuese(*args):
 	db = BioOfficeConn()
 
-	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", ' \
-	 + '      "VK1", "VK0" ' \
-	 + 'FROM "V_Artikelinfo" ' \
-	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
-	 + 'ORDER BY "Bezeichnung"'
+# 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", ' \
+# 	 + '      "VK1", "VK0" ' \
+# 	 + 'FROM "V_Artikelinfo" ' \
+# 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
+# 	 + 'ORDER BY "Bezeichnung"'
 
 	# Obtain lists from DB via sql query
-	listGemuese = db.queryResult(sql % 1, 'ISSSDD')
-	listObst    = db.queryResult(sql % 3, 'ISSSDD')
+	listGemuese = db.queryResult(KLGSQL % 1, 'ISSSDD')
+	listObst = db.queryResult(KLGSQL % 3, 'ISSSDD')
 
 	# Use a consistant capitalization for the unit
 	for r in listGemuese: r[3] = r[3].capitalize()
@@ -535,12 +575,12 @@ def KassenlisteGemuese(*args):
 	sheet = Sheet('Kassenliste', 2)
 	sheet.addData(listGemuese, listObst)
 	sheet.addColumns([
-		ColumnDef(width=10, bold=True),        # EAN
-		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
-		ColumnDef(width=8),                    # Land
-		ColumnDef(width=8, greyUnit=True),     # VKEinheit
-		ColumnDef(width=17), # Preis Mitglieder
-		ColumnDef(width=17)  # Preis Andere
+		ColumnDef(width=10, bold=True),         # EAN
+		ColumnDef(width=50, tryOptWidth=True),  # Bezeichnung
+		ColumnDef(width=8),                     # Land
+		ColumnDef(width=8, greyUnit=True),      # VKEinheit
+		ColumnDef(width=17),  # Preis Mitglieder
+		ColumnDef(width=17)   # Preis Andere
 	])
 	sheet.formatColumns()
 	sheet.setListLabels("Gemüse", "Obst")
@@ -548,13 +588,23 @@ def KassenlisteGemuese(*args):
 	return None
 
 
-sql_brot = 'SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit", ' \
-	 + '      "VK1", "VK0" ' \
-	 + 'FROM "V_Artikelinfo" ' \
-	 + 'WHERE "LadenID" = \'PLATTSALAT\' AND "WG" = \'%s\' ' \
-	 + '  AND "LiefID" = \'%s\' ' \
-	 + '  AND "EAN" <= 9999 AND "EAN" >= 1000 ' \
-	 + 'ORDER BY "Bezeichnung"'
+# sql_brot = 'SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit", ' \
+# 	 + '      "VK1", "VK0" ' \
+# 	 + 'FROM "V_Artikelinfo" ' \
+# 	 + 'WHERE "LadenID" = \'PLATTSALAT\' AND "WG" = \'%s\' ' \
+# 	 + '  AND "LiefID" = \'%s\' ' \
+# 	 + '  AND "EAN" <= 9999 AND "EAN" >= 1000 ' \
+# 	 + 'ORDER BY "Bezeichnung"'
+
+sql_brot = """\
+SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
+FROM "V_Artikelinfo"
+WHERE "LadenID" = 'PLATTSALAT' AND "WG" = '%s'
+AND "LiefID" = '%s'
+AND "EAN" <= 9999 AND "EAN" >= 1000
+ORDER BY "Bezeichnung"
+"""
+
 
 def KassenlisteBrot(name, id):
 	db = BioOfficeConn()
@@ -570,30 +620,35 @@ def KassenlisteBrot(name, id):
 	sheet = Sheet('KassenlisteBrot'+id, 2)
 	sheet.addData(lst1, lst2)
 	sheet.addColumns([
-		ColumnDef(width=15, bold=True),        # EAN
-		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
-		ColumnDef(width=12, greyUnit=True),    # VKEinheit
-		ColumnDef(width=14, height=10), # Preis Mitglieder
-		ColumnDef(width=14, height=10)  # Preis Andere
+		ColumnDef(width=15, bold=True),         # EAN
+		ColumnDef(width=50, tryOptWidth=True),  # Bezeichnung
+		ColumnDef(width=12, greyUnit=True),     # VKEinheit
+		ColumnDef(width=14, height=10),  # Preis Mitglieder
+		ColumnDef(width=14, height=10)   # Preis Andere
 	])
 	sheet.formatColumns()
 	sheet.setListLabels(name + ' Brot', name + ' Kleingebäck')
 	sheet.setPageStyle()
 	return None
 
+
 def KassenlisteBrotS(*args):
 	return KassenlisteBrot('Schäfer', 'SCHÄFERBROT')
+
 
 def KassenlisteBrotW(*args):
 	return KassenlisteBrot('Weber', 'WEBER')
 
-sql_fleisch = """SELECT
-  "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
+
+sql_fleisch = """\
+SELECT "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
 FROM "V_Artikelinfo"
 WHERE "LadenID" = 'PLATTSALAT'
-  AND "WG" = '0090'
-  AND "LiefID" = '%s'
-ORDER BY "Bezeichnung" """
+AND "WG" = '0090'
+AND "LiefID" = '%s'
+ORDER BY "Bezeichnung"
+"""
+
 
 def KassenlisteFleisch(name, id):
 	db = BioOfficeConn()
@@ -604,55 +659,65 @@ def KassenlisteFleisch(name, id):
 	sheet = Sheet('KassenlisteFleisch'+name, 2)
 	sheet.addData(lst)
 	sheet.addColumns([
-		ColumnDef(width=15, bold=True),        # EAN
-		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
-		ColumnDef(width=12, greyUnit=True),    # VKEinheit
-		ColumnDef(width=14, height=10), # Preis Mitglieder
-		ColumnDef(width=14, height=10)  # Preis Andere
+		ColumnDef(width=15, bold=True),         # EAN
+		ColumnDef(width=50, tryOptWidth=True),  # Bezeichnung
+		ColumnDef(width=12, greyUnit=True),     # VKEinheit
+		ColumnDef(width=14, height=10),  # Preis Mitglieder
+		ColumnDef(width=14, height=10)   # Preis Andere
 	])
 	sheet.formatColumns()
 	sheet.setListLabels('Fleisch ' + name)
 	sheet.setPageStyle()
 	return None
 
+
 def KassenlisteFleischFau(*args):
 	return KassenlisteFleisch('Fauser', 'FAUSER')
+
 
 def KassenlisteFleischUnt(*args):
 	return KassenlisteFleisch('Unterweger', 'UNTERWEGER')
 
+
 def KassenlisteFleischUri(*args):
 	return KassenlisteFleisch('Uria', 'URIA')
+
 
 def wglist(*args):
 	return "'" + "', '".join(args) + "'"
 
-sql_loses1 = """SELECT DISTINCT
-  CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
-  "Bezeichnung", "VKEinheit", "VK1", "VK0"
+
+sql_loses1 = """\
+SELECT DISTINCT
+CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
+"Bezeichnung", "VKEinheit", "VK1", "VK0"
 FROM "V_Artikelinfo"
 WHERE "LadenID" = 'PLATTSALAT'
-  AND "WG" = '%s'
+AND "WG" = '%s'
+ORDER BY "Bezeichnung"
+"""
+
+sql_loses2 = """\
+SELECT DISTINCT
+CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
+"Bezeichnung", "VKEinheit", "VK1", "VK0"
+FROM "V_Artikelinfo"
+WHERE "LadenID" = 'PLATTSALAT'
+AND "WG" in (%s)
+AND "iWG" = 'HH'
 ORDER BY "Bezeichnung" """
 
-sql_loses2 = """SELECT DISTINCT
-  CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
-  "Bezeichnung", "VKEinheit", "VK1", "VK0"
+sql_loses3 = """\
+SELECT DISTINCT
+CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
+"Bezeichnung", "VKEinheit", "VK1", "VK0"
 FROM "V_Artikelinfo"
 WHERE "LadenID" = 'PLATTSALAT'
-  AND "WG" in (%s)
-  AND "iWG" = 'HH'
+AND "LiefID" = 'TENNENTAL'
+AND "WG" in (%s)
+AND "iWG" = 'HH'
 ORDER BY "Bezeichnung" """
 
-sql_loses3 = """SELECT DISTINCT
-  CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
-  "Bezeichnung", "VKEinheit", "VK1", "VK0"
-FROM "V_Artikelinfo"
-WHERE "LadenID" = 'PLATTSALAT'
-  AND "LiefID" = 'TENNENTAL'
-  AND "WG" in (%s)
-  AND "iWG" = 'HH'
-ORDER BY "Bezeichnung" """
 
 def KassenlisteLoseWare(*args):
 	db = BioOfficeConn()
@@ -660,10 +725,12 @@ def KassenlisteLoseWare(*args):
 	lst1 = db.queryResult(sql_loses1 % '0585', 'SSSDD')
 	lst2 = db.queryResult(sql_loses1 % '0590', 'SSSDD')
 	lst3 = db.queryResult(sql_loses2 % wglist('0400'), 'SSSDD')
-	lst4 = db.queryResult(sql_loses2 %
-						  wglist('0070', '0200', '0280', '0340'), 'SSSDD')
-	lst5 = db.queryResult(sql_loses2 %
-						  wglist('0020', '0025', '0060'), 'SSSDD')
+	lst4 = db.queryResult(
+		sql_loses2 % wglist('0070', '0200', '0280', '0340'), 'SSSDD'
+	)
+	lst5 = db.queryResult(
+		sql_loses2 % wglist('0020', '0025', '0060'), 'SSSDD'
+	)
 	for r in lst1: r[2] = r[2].capitalize()
 	for r in lst2: r[2] = r[2].capitalize()
 	for r in lst3: r[2] = r[2].capitalize()
@@ -673,15 +740,17 @@ def KassenlisteLoseWare(*args):
 	sheet = Sheet('KassenlisteLoseWare', 2)
 	sheet.addData(lst1, lst2, lst3, lst4, lst5)
 	sheet.addColumns([
-		ColumnDef(width=32, bold=True),        # EAN
-		ColumnDef(width=50, tryOptWidth=True), # Bezeichnung
-		ColumnDef(width=12, greyUnit=True),    # VKEinheit
-		ColumnDef(width=16, height=10), # Preis Mitglieder
-		ColumnDef(width=16, height=10)  # Preis Andere
+		ColumnDef(width=32, bold=True),         # EAN
+		ColumnDef(width=50, tryOptWidth=True),  # Bezeichnung
+		ColumnDef(width=12, greyUnit=True),     # VKEinheit
+		ColumnDef(width=16, height=10),  # Preis Mitglieder
+		ColumnDef(width=16, height=10)   # Preis Andere
 	])
 	sheet.formatColumns()
-	sheet.setListLabels('Lose Lebensmittel', 'Lose Waschmittel',
-						'Säfte', '5 Elemente', 'Tennental')
+	sheet.setListLabels(
+		'Lose Lebensmittel', 'Lose Waschmittel',
+		'Säfte', '5 Elemente', 'Tennental'
+	)
 	sheet.setPageStyle()
 	return None
 

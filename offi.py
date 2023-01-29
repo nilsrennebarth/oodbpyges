@@ -6,11 +6,12 @@ Prepare an interactive python - libreoffice session
 import uno
 import types
 
+
 class So(types.SimpleNamespace):
 	pass
 
+
 def init():
-	
 	localContext = uno.getComponentContext()
 	resolver = localContext.ServiceManager.createInstanceWithContext(
 		"com.sun.star.bridge.UnoUrlResolver",
@@ -25,5 +26,3 @@ def init():
 	)
 	model = desktop.getCurrentComponent()
 	return So(ctx=ctx, smgr=smgr, desktop=desktop, model=model)
-
-	
