@@ -3,6 +3,8 @@ import collections
 import datetime
 import numbers
 import types
+from typing import Any
+import logging
 import uno
 from com.sun.star.lang import Locale
 from com.sun.star.table.CellVertJustify import CENTER as vertCenter
@@ -11,6 +13,9 @@ from com.sun.star.table.CellHoriJustify import RIGHT as horRight
 from com.sun.star.table.CellHoriJustify import LEFT as horLeft
 from com.sun.star.table import CellRangeAddress
 
+logging.basicConfig(filename='/home/nils/tmp/oodebug.log')
+log = logging.getLogger('libreoffice')
+log.setLevel(logging.DEBUG)
 
 class BioOfficeConn:
 	"""Connection to our Bio-Office database"""
@@ -29,6 +34,7 @@ class BioOfficeConn:
 		sql is the query as a string, types is a string specifying
 		the types in each row. I is for Int, S for String, D for Double.
 		"""
+		log.debug(f'Run query {sql}')
 		meths = []
 		result = []
 		dbres = self.dbconn.createStatement().executeQuery(sql)
@@ -45,6 +51,42 @@ class BioOfficeConn:
 		while dbres.next():
 			result.append([meths[i](i+1) for i in range(len(meths))])
 		return result
+
+def mkincond(name, value):
+	lst = ','.join(f"'{v}'" for v in value)
+	return f'"{name}" IN ({lst})'
+
+def mkeqcond(name, value):
+	return f""""{name}" = '{value}'"""
+
+class Query(types.SimpleNamespace):
+	SQL = 'SELECT DISTINCT {cols} FROM "V_Artikelinfo" '\
+		"""WHERE "LadenID" = 'PLATTSALAT' AND {cons} """ \
+		'ORDER BY "Bezeichnung"'
+
+	EAN = 'CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20))'
+
+	Cols = ["EAN", "Bezeichnung", "Land", "VK1", "VK0", "VKEinheit"]
+	SCols = "SSSDDS"
+
+	CONDS = []
+
+	def __init__(self, wg=None, iwg=None, liefer=None) -> None:
+		self.wg, self.iwg, self.liefer = wg, iwg, liefer
+
+	def run(self):
+		self.cols = ','.join(self.EAN if c=='EAN' else f'"{c}"' for c in self.Cols)
+		conditions = self.CONDS.copy()
+		for n, name in dict(iwg='iWG', liefer='LiefID', wg='WG').items():
+			value = self.__dict__[n]
+			if value is None: continue
+			if isinstance(value, list):
+				conditions.append(mkincond(name, value))
+			else:
+				conditions.append(mkeqcond(name, value))
+		self.cons = ' AND '.join(conditions)
+		self.sql = self.SQL.format_map(self.__dict__)
+		return BioOfficeConn().queryResult(self.sql, self.SCols)
 
 
 Pos = collections.namedtuple('Pos', 'x y')
@@ -384,42 +426,36 @@ class Sheet:
 					cell.HoriJustify = horCenter
 
 
-WLSSQL = """\
-SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"
-FROM "V_Artikelinfo"
-WHERE "Waage" = 'A' AND "LadenID" = 'PLATTSALAT'
-AND "WG" IN ('0001', '0003') AND "iWG" = '%s'
-ORDER BY "Bezeichnung"'
-"""
-
+class WaagenlistenQuery(Query):
+	Cols = ["EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"]
+	SCols = "SSSSDD"
+	CONDS = [
+		""" "Waage" = 'A' """,
+		""" "WG" IN ('0001', '0003') """
+	]
 
 def Waagenlisten(*args):
-	"""Lists for the electronic balances
+	"""
+	Location based lists
 
 	For each of the 7 locations create a landscape formatted
 	page with large items, all on one sheet with page breaks
 	ready to print.
+
+	These lists will be placed at the various places where
+	fruits and vegetables can be found.
 	"""
 
 	locs = [
-		'äpfel', 'karotte', 'kartoffel', 'kühl links', 'kühl rechts',
-		'tomate', 'zitrone', 'zwiebel'
+		'Apfel', 'Kartoffel', 'Knoblauch', 'kühl links', 'kühl rechts',
+		'Pilze', 'Zitrone', 'Zwiebel'
 	]
-
-	db = BioOfficeConn()
-
-# 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", ' \
-# 	 +                    '"VK1", "VK0" ' \
-# 	 + 'FROM "V_Artikelinfo" ' \
-# 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' ' \
-# 	 +   'AND "WG" IN (\'0001\', \'0003\') AND "iWG" = \'%s\' ' \
-# 	 + 'ORDER BY "Bezeichnung"'
 
 	lists = []
 
 	for loc in locs:
 		# Obtain list for location
-		L = db.queryResult(WLSSQL % loc, 'ISSSDD')
+		L = WaagenlistenQuery(iwg=loc).run()
 		# Use consistent capitalization for the unit
 		for r in L: r[3] = r[3].capitalize()
 		lists.append(L)
@@ -443,13 +479,10 @@ def Waagenlisten(*args):
 	sheet.setPageStyle(maxscale=False, date=True)
 
 
-WLSQL = """\
-SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VK1", "VK0", "VKEinheit"
-FROM "V_Artikelinfo"
-WHERE "Waage" = 'A' AND "LadenID" = 'PLATTSALAT' AND "WG" = %i
-ORDER BY "Bezeichnung"
-"""
-
+class WaageQuery(Query):
+	Cols = ["EAN", "Bezeichnung", "Land", "VK1", "VK0", "VKEinheit"]
+	SCols = "SSSDDS"
+	CONDS = [""""Waage" = 'A'"""]
 
 def Waagenliste(*args):
 	"""Lists for the electronic balances
@@ -458,20 +491,11 @@ def Waagenliste(*args):
 	electronic balances, containing the EAN numbers,
 	the names and the unit
 
-	The list is in landscape format and fitted to two pages
+	The list is in landscape format and fitted to two pages.
 	"""
-
-	db = BioOfficeConn()
-
-# 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VK1", ' \
-# 	 + '                   "VK0", "VKEinheit" '\
-# 	 + 'FROM "V_Artikelinfo" ' \
-# 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
-# 	 + 'ORDER BY "Bezeichnung"'
-
 	# Obtain lists from DB via sql query
-	listGemuese = db.queryResult(WLSQL % 1, 'ISSDDS')
-	listObst = db.queryResult(WLSQL % 3, 'ISSDDS')
+	listGemuese = WaageQuery(wg='0001').run()
+	listObst = WaageQuery(wg='0003').run()
 
 	# Use a consistant capitalization for the unit
 	for r in listGemuese: r[5] = r[5].capitalize()
@@ -499,12 +523,10 @@ def Waagenliste(*args):
 	return None
 
 
-WLUSQL = """\
-SELECT DISTINCT "EAN", "Bezeichnung", "VK1", "VKEinheit"
-FROM "V_Artikelinfo"
-WHERE "Waage" = 'A' AND "LadenID" = 'PLATTSALAT' AND "WG" = %i
-ORDER BY "Bezeichnung"'
-"""
+class WaagenupQuery(Query):
+	Cols = ["EAN", "Bezeichnung", "VK1", "VKEinheit"]
+	SCols = "SSDS"
+	CONDS = [""""Waage" = 'A'"""]
 
 
 def WaagenlisteUp(*args):
@@ -516,17 +538,9 @@ def WaagenlisteUp(*args):
 
 	The list is in portrait format and fitted onto a single page.
 	"""
-
-	db = BioOfficeConn()
-
-# 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "VK1", "VKEinheit" ' \
-# 	 + 'FROM "V_Artikelinfo" ' \
-# 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
-# 	 + 'ORDER BY "Bezeichnung"'
-
 	# Obtain lists from DB via sql query
-	listGemuese = db.queryResult(WLUSQL % 1, 'ISDS')
-	listObst = db.queryResult(WLUSQL % 3, 'ISDS')
+	listGemuese = WaagenupQuery(wg='0001').run()
+	listObst = WaagenupQuery(wg='0003').run()
 
 	# Use a consistant capitalization for the unit
 	for r in listGemuese: r[3] = r[3].capitalize()
@@ -546,27 +560,18 @@ def WaagenlisteUp(*args):
 
 	return None
 
-
-KLGSQL = """\
-SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"
-FROM "V_Artikelinfo"
-WHERE "Waage" = 'A' AND "LadenID" = 'PLATTSALAT' AND "WG" = %i
-ORDER BY "Bezeichnung"
-"""
+class KassenlandQuery(Query):
+	Cols=["EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"]
+	SCols="SSSSDD"
+	CONDS = [""""Waage" = 'A'"""]
 
 
 def KassenlisteGemuese(*args):
 	db = BioOfficeConn()
 
-# 	sql = 'SELECT DISTINCT "EAN", "Bezeichnung", "Land", "VKEinheit", ' \
-# 	 + '      "VK1", "VK0" ' \
-# 	 + 'FROM "V_Artikelinfo" ' \
-# 	 + 'WHERE "Waage" = \'A\' AND "LadenID" = \'PLATTSALAT\' AND "WG" = %i ' \
-# 	 + 'ORDER BY "Bezeichnung"'
-
 	# Obtain lists from DB via sql query
-	listGemuese = db.queryResult(KLGSQL % 1, 'ISSSDD')
-	listObst = db.queryResult(KLGSQL % 3, 'ISSSDD')
+	listGemuese = KassenlandQuery(wg='0001').run()
+	listObst = KassenlandQuery(wg='0003').run()
 
 	# Use a consistant capitalization for the unit
 	for r in listGemuese: r[3] = r[3].capitalize()
@@ -588,30 +593,15 @@ def KassenlisteGemuese(*args):
 	return None
 
 
-# sql_brot = 'SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit", ' \
-# 	 + '      "VK1", "VK0" ' \
-# 	 + 'FROM "V_Artikelinfo" ' \
-# 	 + 'WHERE "LadenID" = \'PLATTSALAT\' AND "WG" = \'%s\' ' \
-# 	 + '  AND "LiefID" = \'%s\' ' \
-# 	 + '  AND "EAN" <= 9999 AND "EAN" >= 1000 ' \
-# 	 + 'ORDER BY "Bezeichnung"'
-
-sql_brot = """\
-SELECT DISTINCT "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
-FROM "V_Artikelinfo"
-WHERE "LadenID" = 'PLATTSALAT' AND "WG" = '%s'
-AND "LiefID" = '%s'
-AND "EAN" <= 9999 AND "EAN" >= 1000
-ORDER BY "Bezeichnung"
-"""
+class KassenQuery(Query):
+	Cols=["EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"]
+	SCols="SSSDD"
 
 
 def KassenlisteBrot(name, id):
-	db = BioOfficeConn()
-
 	# Obtain lists from DB via sql query
-	lst1 = db.queryResult(sql_brot % ('0020', id), 'ISSDD')
-	lst2 = db.queryResult(sql_brot % ('0025', id), 'ISSDD')
+	lst1 = KassenQuery(wg='0020', liefer=id).run()
+	lst2 = KassenQuery(wg='0025', liefer=id).run()
 
 	# Use a consistant capitalization for the unit
 	for r in lst1: r[2] = r[2].capitalize()
@@ -640,20 +630,8 @@ def KassenlisteBrotW(*args):
 	return KassenlisteBrot('Weber', 'WEBER')
 
 
-sql_fleisch = """\
-SELECT "EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"
-FROM "V_Artikelinfo"
-WHERE "LadenID" = 'PLATTSALAT'
-AND "WG" = '0090'
-AND "LiefID" = '%s'
-ORDER BY "Bezeichnung"
-"""
-
-
 def KassenlisteFleisch(name, id):
-	db = BioOfficeConn()
-
-	lst = db.queryResult(sql_fleisch % id, 'ISSDD')
+	lst = KassenQuery(wg='0090', liefer=id).run()
 	for r in lst: r[2] = r[2].capitalize()
 
 	sheet = Sheet('KassenlisteFleisch'+name, 2)
@@ -683,54 +661,13 @@ def KassenlisteFleischUri(*args):
 	return KassenlisteFleisch('Uria', 'URIA')
 
 
-def wglist(*args):
-	return "'" + "', '".join(args) + "'"
-
-
-sql_loses1 = """\
-SELECT DISTINCT
-CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
-"Bezeichnung", "VKEinheit", "VK1", "VK0"
-FROM "V_Artikelinfo"
-WHERE "LadenID" = 'PLATTSALAT'
-AND "WG" = '%s'
-ORDER BY "Bezeichnung"
-"""
-
-sql_loses2 = """\
-SELECT DISTINCT
-CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
-"Bezeichnung", "VKEinheit", "VK1", "VK0"
-FROM "V_Artikelinfo"
-WHERE "LadenID" = 'PLATTSALAT'
-AND "WG" in (%s)
-AND "iWG" = 'HH'
-ORDER BY "Bezeichnung" """
-
-sql_loses3 = """\
-SELECT DISTINCT
-CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20)),
-"Bezeichnung", "VKEinheit", "VK1", "VK0"
-FROM "V_Artikelinfo"
-WHERE "LadenID" = 'PLATTSALAT'
-AND "LiefID" = 'TENNENTAL'
-AND "WG" in (%s)
-AND "iWG" = 'HH'
-ORDER BY "Bezeichnung" """
-
-
 def KassenlisteLoseWare(*args):
-	db = BioOfficeConn()
+	lst1 = KassenQuery(wg='0585').run()
+	lst2 = KassenQuery(wg='0590').run()
+	lst3 = KassenQuery(iwg='HH', wg='0400').run()
+	lst4 = KassenQuery(iwg='HH', wg=['0070', '0200', '0280', '0340'] ).run()
+	lst5 = KassenQuery(iwg='HH', wg=['0020', '0025', '0060']).run()
 
-	lst1 = db.queryResult(sql_loses1 % '0585', 'SSSDD')
-	lst2 = db.queryResult(sql_loses1 % '0590', 'SSSDD')
-	lst3 = db.queryResult(sql_loses2 % wglist('0400'), 'SSSDD')
-	lst4 = db.queryResult(
-		sql_loses2 % wglist('0070', '0200', '0280', '0340'), 'SSSDD'
-	)
-	lst5 = db.queryResult(
-		sql_loses2 % wglist('0020', '0025', '0060'), 'SSSDD'
-	)
 	for r in lst1: r[2] = r[2].capitalize()
 	for r in lst2: r[2] = r[2].capitalize()
 	for r in lst3: r[2] = r[2].capitalize()
