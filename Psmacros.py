@@ -13,9 +13,12 @@ from com.sun.star.table.CellHoriJustify import RIGHT as horRight
 from com.sun.star.table.CellHoriJustify import LEFT as horLeft
 from com.sun.star.table import CellRangeAddress
 
-logging.basicConfig(filename='/home/nils/tmp/oodebug.log')
-log = logging.getLogger('libreoffice')
-log.setLevel(logging.DEBUG)
+def do_log(file):
+	global log
+
+	logging.basicConfig(filename='/home/nils/tmp/oodebug.log')
+	log = logging.getLogger('libreoffice')
+	log.setLevel(logging.DEBUG)
 
 class BioOfficeConn:
 	"""Connection to our Bio-Office database"""
@@ -34,7 +37,6 @@ class BioOfficeConn:
 		sql is the query as a string, types is a string specifying
 		the types in each row. I is for Int, S for String, D for Double.
 		"""
-		log.debug(f'Run query {sql}')
 		meths = []
 		result = []
 		dbres = self.dbconn.createStatement().executeQuery(sql)
