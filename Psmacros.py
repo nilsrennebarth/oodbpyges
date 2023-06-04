@@ -13,10 +13,10 @@ from com.sun.star.table.CellHoriJustify import RIGHT as horRight
 from com.sun.star.table.CellHoriJustify import LEFT as horLeft
 from com.sun.star.table import CellRangeAddress
 
-def do_log(file):
+def do_log(fname='/home/nils/tmp/oodebug.log'):
 	global log
 
-	logging.basicConfig(filename='/home/nils/tmp/oodebug.log')
+	logging.basicConfig(filename=fname)
 	log = logging.getLogger('libreoffice')
 	log.setLevel(logging.DEBUG)
 
@@ -88,6 +88,7 @@ class Query(types.SimpleNamespace):
 				conditions.append(mkeqcond(name, value))
 		self.cons = ' AND '.join(conditions)
 		self.sql = self.SQL.format_map(self.__dict__)
+		# log.debug(f'Query: {self.sql}')
 		return BioOfficeConn().queryResult(self.sql, self.SCols)
 
 
@@ -106,6 +107,8 @@ class ColumnDef(types.SimpleNamespace):
 	- bold (boolean) set typeface to bold
 	- greyUnit (boolean) set background to grey if the text appears
 	. to represent discrete units
+	- hcenter (boolean) Center horizontally
+	- hright (boolean) Align on the right
 
 	"""
 
@@ -212,12 +215,12 @@ class Sheet:
 		N = 0
 		for list in lists: N += len(list)
 		# colCols is the number of columns in each list. All lists
-		# are supposed to have the same number of columns
-		self.colCols = len(lists[0][0])
+		# are supposed to have the same number of columns.
+		self.colCols = max(len(l[0]) if len(l) > 0 else 0 for l in lists)
+		if self.colCols == 0:
+			raise ValueError('All lists are empty')
 		self.HeaderPositions = []
 		self.totalCols = self.cols * (self.colCols + 1) - 1
-
-		# c = self.getCell(10, 1)
 		# Each list starts with a Label, using a single row
 		# then one row for each member and another row to separate
 		# the list from the next one. The total numer of rows
@@ -234,7 +237,8 @@ class Sheet:
 		for list in lists:
 			self.HeaderPositions.append(Pos(pos.x, pos.y))
 			# advance once, to get room for the label
-			pos.advance()
+			if len(lists) > 1:
+				pos.advance()
 			for row in list:
 				for i, val in enumerate(row):
 					cell = self.getCell(pos.x + i, pos.y)
@@ -562,6 +566,38 @@ def WaagenlisteUp(*args):
 
 	return None
 
+class SchrankQuery(Query):
+	Cols = ["EAN", "Bezeichnung", "Land", "VK1", "VK0", "LiefID"]
+	SCols = 'SSSDDS'
+
+def SchranklisteKuehl1(*args):
+	"""Lists for the Refridgerators"""
+	listKuehl1 = SchrankQuery(iwg='1Mopro').run()
+
+	sheet = Sheet('Kühlschrankliste1', 1, titlerows=1)
+	sheet.addData(listKuehl1)
+	sheet.setHeaderRow([
+		[0, 'EAN', ColumnDef(bold=True, hcenter=True)],
+		[1, 'Bezeichnung', ColumnDef()],
+		[2, 'Land', ColumnDef()],
+		[3, 'Mitglieder', ColumnDef(hcenter=True, height=10, bold=True)],
+		[4, 'Nicht-\nmitglieder', ColumnDef(hcenter=True, height=10, bold=True)],
+		[5, 'Hersteller', ColumnDef(hcenter=True)]
+	])
+	sheet.addColumns([
+		ColumnDef(width=35, bold=True),
+		ColumnDef(width=90),
+		ColumnDef(width=10),
+		ColumnDef(width=25),
+		ColumnDef(width=25),
+		ColumnDef(width=30)
+	])
+	sheet.formatColumns()
+	sheet.setPageStyle()
+
+	return None
+
+
 class KassenlandQuery(Query):
 	Cols=["EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"]
 	SCols="SSSSDD"
@@ -698,6 +734,7 @@ g_exportedScripts = [
 	Waagenlisten,
 	Waagenliste,
 	WaagenlisteUp,
+	SchranklisteKuehl1,
 	KassenlisteGemuese,
 	KassenlisteBrotS,
 	KassenlisteBrotW,
