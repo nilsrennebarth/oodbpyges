@@ -13,12 +13,14 @@ from com.sun.star.table.CellHoriJustify import RIGHT as horRight
 from com.sun.star.table.CellHoriJustify import LEFT as horLeft
 from com.sun.star.table import CellRangeAddress
 
+
 def do_log(fname='/home/nils/tmp/oodebug.log'):
 	global log
 
 	logging.basicConfig(filename=fname)
 	log = logging.getLogger('libreoffice')
 	log.setLevel(logging.DEBUG)
+
 
 class BioOfficeConn:
 	"""Connection to our Bio-Office database"""
@@ -54,12 +56,15 @@ class BioOfficeConn:
 			result.append([meths[i](i+1) for i in range(len(meths))])
 		return result
 
+
 def mkincond(name, value):
 	lst = ','.join(f"'{v}'" for v in value)
 	return f'"{name}" IN ({lst})'
 
+
 def mkeqcond(name, value):
 	return f""""{name}" = '{value}'"""
+
 
 class Query(types.SimpleNamespace):
 	SQL = 'SELECT DISTINCT {cols} FROM "V_Artikelinfo" '\
@@ -77,7 +82,7 @@ class Query(types.SimpleNamespace):
 		self.wg, self.iwg, self.liefer = wg, iwg, liefer
 
 	def run(self):
-		self.cols = ','.join(self.EAN if c=='EAN' else f'"{c}"' for c in self.Cols)
+		self.cols = ','.join(self.EAN if c == 'EAN' else f'"{c}"' for c in self.Cols)
 		conditions = self.CONDS.copy()
 		for n, name in dict(iwg='iWG', liefer='LiefID', wg='WG').items():
 			value = self.__dict__[n]
@@ -216,7 +221,7 @@ class Sheet:
 		for list in lists: N += len(list)
 		# colCols is the number of columns in each list. All lists
 		# are supposed to have the same number of columns.
-		self.colCols = max(len(l[0]) if len(l) > 0 else 0 for l in lists)
+		self.colCols = max(len(ll[0]) if len(ll) > 0 else 0 for ll in lists)
 		if self.colCols == 0:
 			raise ValueError('All lists are empty')
 		self.HeaderPositions = []
@@ -440,6 +445,7 @@ class WaagenlistenQuery(Query):
 		""" "WG" IN ('0001', '0003') """
 	]
 
+
 def Waagenlisten(*args):
 	"""
 	Location based lists
@@ -489,6 +495,7 @@ class WaageQuery(Query):
 	Cols = ["EAN", "Bezeichnung", "Land", "VK1", "VK0", "VKEinheit"]
 	SCols = "SSSDDS"
 	CONDS = [""""Waage" = 'A'"""]
+
 
 def Waagenliste(*args):
 	"""Lists for the electronic balances
@@ -566,9 +573,11 @@ def WaagenlisteUp(*args):
 
 	return None
 
+
 class SchrankQuery(Query):
 	Cols = ["EAN", "Bezeichnung", "Land", "VK1", "VK0", "LiefID"]
 	SCols = 'SSSDDS'
+
 
 def SchranklisteKuehl1(*args):
 	"""Lists for the Refridgerators"""
@@ -599,14 +608,12 @@ def SchranklisteKuehl1(*args):
 
 
 class KassenlandQuery(Query):
-	Cols=["EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"]
-	SCols="SSSSDD"
+	Cols = ["EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"]
+	SCols = "SSSSDD"
 	CONDS = [""""Waage" = 'A'"""]
 
 
 def KassenlisteGemuese(*args):
-	db = BioOfficeConn()
-
 	# Obtain lists from DB via sql query
 	listGemuese = KassenlandQuery(wg='0001').run()
 	listObst = KassenlandQuery(wg='0003').run()
@@ -632,8 +639,8 @@ def KassenlisteGemuese(*args):
 
 
 class KassenQuery(Query):
-	Cols=["EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"]
-	SCols="SSSDD"
+	Cols = ["EAN", "Bezeichnung", "VKEinheit", "VK1", "VK0"]
+	SCols = "SSSDD"
 
 
 def KassenlisteBrot(name, id):
@@ -703,7 +710,7 @@ def KassenlisteLoseWare(*args):
 	lst1 = KassenQuery(wg='0585').run()
 	lst2 = KassenQuery(wg='0590').run()
 	lst3 = KassenQuery(iwg='HH', wg='0400').run()
-	lst4 = KassenQuery(iwg='HH', wg=['0070', '0200', '0280', '0340'] ).run()
+	lst4 = KassenQuery(iwg='HH', wg=['0070', '0200', '0280', '0340']).run()
 	lst5 = KassenQuery(iwg='HH', wg=['0020', '0025', '0060']).run()
 
 	for r in lst1: r[2] = r[2].capitalize()
