@@ -54,6 +54,38 @@ package `openjdk-8-jre`
 The password may be omitted, in which case your are asked for it, every time
 the database is (re)opened.
 
+There is a small java program that allows to use a jdbc driver via
+commandline at: https://jdbcsql.sourceforge.net/
+
+Download the file jdbcsql-1.0.zip from the project page, unpack the zip file
+to a temporary directory, say ``jdbc/`` then perform the following
+modifications:
+
+- Add file jtds-1.3.1.jar to the directory
+- Edit file META-INF/MANIFEST.MF and repair the damaged line starting with
+  Rsrc-Class-Path: by putting everything into one line, space separated, and
+  add jtds-1.3.1.jar to the line
+- Add the following lines to the file DBCConfig.properties::
+
+    # MSSQL settings
+    mssql_driver = net.sourceforge.jtds.jdbc.Driver
+    mssql_url = jdbc:jtds:sqlserver://host:port/dbname;password=******
+
+  where the asterisks are replaced by the actual password. Alternatively, you
+  can omit ";password" and need to put the password into your commandline
+  invocation.
+
+Now zip the directory with zip -r . ../jdbcsql.jar and then you can issue an
+SQL query using::
+
+  java -jar jdbcsql.jar -m mssql -h bodb -d Extras -U sa -Px <sql string>
+
+Note that the last argument must be seen as a single commandline arg by the
+java program, i.e. it must be put in quotes. Also note that strings in SQL
+must be delimited by single quotes and table names in mssql might be put in
+double quotes, so you need to surround `sql string` by double quotes, and use
+backslash escaped double quotes inside to delimit column names.
+
 Python for scripting
 --------------------
 Install the package `libreoffice-script-provider-python` (btw., our
