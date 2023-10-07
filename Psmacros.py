@@ -59,19 +59,19 @@ class BioOfficeConn:
 
 def mkincond(name, value):
 	lst = ','.join(f"'{v}'" for v in value)
-	return f'"{name}" IN ({lst})'
+	return f'{name} IN ({lst})'
 
 
 def mkeqcond(name, value):
-	return f""""{name}" = '{value}'"""
+	return f"{name} = '{value}'"
 
 
 class Query(types.SimpleNamespace):
-	SQL = 'SELECT DISTINCT {cols} FROM "V_Artikelinfo" '\
-		"""WHERE "LadenID" = 'PLATTSALAT' AND {cons} """ \
-		'ORDER BY "Bezeichnung"'
+	SQL = 'SELECT DISTINCT {cols} FROM V_Artikelinfo '\
+		"WHERE LadenID = 'PLATTSALAT' AND {cons} " \
+		'ORDER BY Bezeichnung'
 
-	EAN = 'CAST(CAST("EAN" AS DECIMAL(20)) AS VARCHAR(20))'
+	EAN = 'CAST(CAST(EAN AS DECIMAL(20)) AS VARCHAR(20))'
 
 	Cols = ["EAN", "Bezeichnung", "Land", "VK1", "VK0", "VKEinheit"]
 	SCols = "SSSDDS"
@@ -82,7 +82,7 @@ class Query(types.SimpleNamespace):
 		self.wg, self.iwg, self.liefer = wg, iwg, liefer
 
 	def run(self):
-		self.cols = ','.join(self.EAN if c == 'EAN' else f'"{c}"' for c in self.Cols)
+		self.cols = ','.join(self.EAN if c == 'EAN' else f'{c}' for c in self.Cols)
 		conditions = self.CONDS.copy()
 		for n, name in dict(iwg='iWG', liefer='LiefID', wg='WG').items():
 			value = self.__dict__[n]
@@ -441,8 +441,8 @@ class WaagenlistenQuery(Query):
 	Cols = ["EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"]
 	SCols = "SSSSDD"
 	CONDS = [
-		""" "Waage" = 'A' """,
-		""" "WG" IN ('0001', '0003') """
+		"Waage = 'A'",
+		"WG IN ('0001', '0003')"
 	]
 
 
@@ -494,7 +494,7 @@ def Waagenlisten(*args):
 class WaageQuery(Query):
 	Cols = ["EAN", "Bezeichnung", "Land", "VK1", "VK0", "VKEinheit"]
 	SCols = "SSSDDS"
-	CONDS = [""""Waage" = 'A'"""]
+	CONDS = ["Waage = 'A'"]
 
 
 def Waagenliste(*args):
@@ -539,7 +539,7 @@ def Waagenliste(*args):
 class WaagenupQuery(Query):
 	Cols = ["EAN", "Bezeichnung", "VK1", "VKEinheit"]
 	SCols = "SSDS"
-	CONDS = [""""Waage" = 'A'"""]
+	CONDS = ["Waage = 'A'"]
 
 
 def WaagenlisteUp(*args):
@@ -610,7 +610,7 @@ def SchranklisteKuehl1(*args):
 class KassenlandQuery(Query):
 	Cols = ["EAN", "Bezeichnung", "Land", "VKEinheit", "VK1", "VK0"]
 	SCols = "SSSSDD"
-	CONDS = [""""Waage" = 'A'"""]
+	CONDS = ["Waage = 'A'"]
 
 
 def KassenlisteGemuese(*args):
@@ -738,15 +738,15 @@ def KassenlisteLoseWare(*args):
 
 # Only export the public functions as macros
 g_exportedScripts = [
-	Waagenlisten,
-	Waagenliste,
-	WaagenlisteUp,
-	SchranklisteKuehl1,
-	KassenlisteGemuese,
 	KassenlisteBrotS,
 	KassenlisteBrotW,
 	KassenlisteFleischFau,
 	KassenlisteFleischUnt,
 	KassenlisteFleischUri,
-	KassenlisteLoseWare
+	KassenlisteGemuese,
+	KassenlisteLoseWare,
+	SchranklisteKuehl1,
+	Waagenliste,
+	WaagenlisteUp,
+	Waagenlisten
 ]
