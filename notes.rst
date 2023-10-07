@@ -529,9 +529,6 @@ Other URLs
 - https://wiki.openoffice.org/wiki/Python_as_a_macro_language
 - https://wiki.openoffice.org/wiki/Documentation/BASIC_Guide/Formatting_Spreadsheet_Documents
 
-Snippets
-========
-
 Local BioOffice notes
 ---------------------
 The most used table is V_Artikelinfo which is actually a view::
@@ -547,41 +544,4 @@ The most used table is V_Artikelinfo which is actually a view::
     ON (Artikel.EAN = Verkauf.EAN) OR (Artikel.EAN = Einkauf.EAN)
   WHERE Verkauf.Sortiment = 1
 
-VK1 ist der Mitglieder-Verkaufspreis, VK0 der allgemeine Verkaufspreis
-
-Kassenliste braucht Spalten EAN, Bezeichnung, VKEinheit, Land, VK1, VK0
-
-
-Fleisch
--------
-Ganze seite hochformat, Spalten: (VK1 = Mitgliederpreis)
-EAN Bezeichnung VKEinheit VK1 VK0
-
-Preise eher kleiner, EAN, Bez
-
-LiefID= URIA FAUSER UNTERWEGER
-
-eine Seite pro LiefID
-
-Lose Produkte Lebensmittel
-WG=0585, Unique Bezeichnung, da selbes Produkt von mehreren Lieferanten
-eine Seite
-
-Lose Prdukte Wasch
-WG=0590
-
-Eine Seite
-1. Saft
-WG=0400, iWG="HH"
-
-2. 5Elemente
-Lieferid
-
-WG='0070' 0200 0280 0340
-
-Tennental
-
-Lieferid=Tennnental
-WG 0020 0025 0060
-
-Am besten als Menü
+VK1 ist the member's price, VK0 the price for non-members.
