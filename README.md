@@ -13,7 +13,7 @@ the next section for details), but this seemingly small project got quickly
 out of bounds and I learned a **lot** about the inner workings of LibreOffice,
 and how everything can be tied together and documented that to some
 detail. This might help other people wanting to achieve similar things.
-This documentation can be found in :doc:`notes`.
+This documentation can be found in [the notes](notes.rst)
 
 ## Background
 
