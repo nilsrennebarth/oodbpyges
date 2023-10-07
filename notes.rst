@@ -54,6 +54,8 @@ package `openjdk-8-jre`
 The password may be omitted, in which case your are asked for it, every time
 the database is (re)opened.
 
+Commandline queries with jdbc
+-----------------------------
 There is a small java program that allows to use a jdbc driver via
 commandline at: https://jdbcsql.sourceforge.net/
 
@@ -85,6 +87,59 @@ java program, i.e. it must be put in quotes. Also note that strings in SQL
 must be delimited by single quotes and table names in mssql might be put in
 double quotes, so you need to surround `sql string` by double quotes, and use
 backslash escaped double quotes inside to delimit column names.
+
+Commandline query with sqlcmd
+-----------------------------
+
+You can obtain the debian package `mssql-tools` using the following
+sources.list file::
+
+  deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-products.gpg]
+  https://packages.microsoft.com/ubuntu/22.04/prod jammy main
+
+The package insists on the microsoft way of putting binaries in package
+specific subdirectories, instead of following the unix convention of putting
+these in /usr/bin, so either add /opt/mssql-tools/bin to your path or (what I
+prefer)::
+
+  ln -s /opt/mssql-tools/bin/sqlcmd /usr/bin
+
+To use sqlcmd first put user name and password of our database user in the
+environment::
+
+  export SQLCMDUSER=waage
+  export SQLCMDPASSWORD=***Removed***
+
+Now call sqlcmd with::
+
+  sqlcmd -S db.core.plattsalat.de -d Extras -Q "<sqlquery>"
+
+Example Query::
+
+  SELECT DISTINCT CAST(CAST(EAN AS DECIMAL(20)) AS VARCHAR(20)),
+  Bezeichnung, Land, VK1, VK0, VKEinheit FROM V_Artikelinfo
+  WHERE Waage = 'A' AND wg = '0001' ORDER BY 2
+
+All on one line. Other environment variables, to allow shortening the
+commandline::
+
+  export SQLCMDSERVER=db.core.plattsalat.de
+  export SQLCMDDBNAME=Extras
+
+When running sqlcmd interactively note that sql commands are only run when you
+enter the command::
+
+  go
+
+on a single line all by itself. Output in different formats (json, xml) is not
+supported under linux. Note that sqlcmd apparently has::
+
+  SET QUOTED_IDENTIFIER OFF
+
+so identifiers (variables, table and column names) must comply to the
+identfier rules: Start with letter or _ and not being a mssql keyword.
+You can still delimit identifiers by enclosing them in square brackets.
+
 
 Python for scripting
 --------------------
@@ -128,6 +183,15 @@ specific - then Add... and select your macro from Macros.
 
 Actions can also be assigned to events using the "Events" tab in the Tools -
 Customize Menu.
+
+Libreoffice stores its user specific configuration in a os specific
+folder. For linux it is $HOME/.config/libreoffice/4/user. In the subdirectory
+config/soffice.cfg/modules/scalc/toolbar, there is a file standardbar.xml
+a normal xml file that is surprisingly readable. You can use the Libreoffice
+GUI to add a macro call to see how an entry looks like and later edit the xml
+file accordingly. Warning: You need to stop all libreoffice processes to make
+it rearead the general config, even those that have no window open, like the
+one started with the pywithcalc script.
 
 Interact with Libreoffice from the python shell
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -399,6 +463,12 @@ assign it back to the service to make the changes take effect::
 
 Using a database
 ~~~~~~~~~~~~~~~~
+In your general LibreOffice configuration, you need to register a database,
+this is Extras / Options / LibreOffice Base / Databases / New
+(The New means Register a new one, not to create a new one) You choose the .odb
+file containing your connection data and register it withe name "bodb" because
+that is what the python macro uses.
+
 Get a db query::
 
   DatabaseContext = createUnoService( "com.sun.star.sdb.DatabaseContext" )
