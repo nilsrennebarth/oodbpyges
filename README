@@ -1,9 +1,8 @@
-===========
- oodbpyges
-===========
+# oodbpyges
 
-Purpose
-=======
+
+## Purpose
+
 The file ``Psmacros.py`` can be used as a LibreOffice (and probably OpenOffice)
 macro file, provided python is enabled as a scripting language. The macros it
 provides fetch lists of articles from a MS-SQL database and create a nicely
@@ -16,8 +15,8 @@ and how everything can be tied together and documented that to some
 detail. This might help other people wanting to achieve similar things.
 This documentation can be found in :doc:`notes`.
 
-Background
-==========
+## Background
+
 The project started in a small community run organic food store in south-west
 Germany. Near to an electronic balance hangs a paper sheet listing the food
 and vegetable items on sale together with price and the three digit code you
