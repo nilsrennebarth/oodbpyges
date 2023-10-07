@@ -1,5 +1,5 @@
-Database access and scripting for Plattsalat printouts
-======================================================
+Notes
+=====
 
 Installation
 ------------
