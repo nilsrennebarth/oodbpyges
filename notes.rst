@@ -127,6 +127,10 @@ commandline::
   export SQLCMDSERVER=db.core.plattsalat.de
   export SQLCMDDBNAME=Extras
 
+To paginate a query append "offset <off> rows fetch next <num> rows only"
+where `off` is the 0-based number for the offset and `num` the maximum number
+of rows to fetch.
+
 When running sqlcmd interactively note that sql commands are only run when you
 enter the command::
 
