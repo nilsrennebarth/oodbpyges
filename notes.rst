@@ -13,10 +13,11 @@ For every user, LibreOffice and a java runtime needs to be installed.
   Connect to an existing database, JDBC, use the settings from the next
   section and create it with name bodb. Save it somwhere in the user's
   path
-- Install the python scripts in
-  - (Windows) C:\Users\<username>\AppData\Roaming
-    \libreoffice\4\user\Scripts\python
+- Install the python script Psmacros.py in
+
+  - (Windows) C:\\Users\\<username>\\AppData\\Roaming\\libreoffice\\4\\user\\Scripts\\python
   - (Linux) ~/.config/libreoffice/4/user/Scripts/python
+
 - Create the Extra Toolbar and connect it with the macros.
 
 Accessing the database
@@ -494,27 +495,18 @@ The purpose of the query services available at a DataSource is to define and
 edit queries. The query services by themselves do not offer methods to execute
 queries.
 
-Plattsalat servera
-------------------
-The python program is stored on ``vserver2:/srv/samba/data/software/psmacros/``
-as Psmacros.py User is nils-rennebarth To copy it, use::
-
-  rsync -av /home/nils/src/ps/Psmacros.py \
-    nils-rennebarth@vserver2:/srv/samba/data/software/psmacros
-
-
 Libre Office general notes
 --------------------------
 The user profile is the folder storing all user related data like extensions,
 custom dictionaries, templates, etc. It is located in
 
   Windows
-    %APPDATA%/libreoffice\4\user (where APPDATA usually is
+    %APPDATA%\\libreoffice\\\4\\user (where APPDATA usually is
 
-      Windows XP
-        C:\Documents and Settings\<username>\Application Data
-      Vista+
-        C:\Users\<username>\AppData\Roaming
+      Windows XP:
+        C:\\Documents and Settings\\<username>\\Application Data
+      Vista and later:
+        C:\\Users\\<username>\\AppData\\Roaming
 
   GNU/Linux
     $HOME/.config/libreoffice/4/user
