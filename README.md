@@ -34,4 +34,4 @@ and can be scripted in python, so how hard can that be?
 And as usual in IT, the answer is: Much harder than you think initially. To
 e.g. automate such a seemingly simple task as using number format for a
 column, you need to select the locale, know the magic constant representing
-the standard numberformat and how right call to actually use this constant.
+the standard number format and the prope call to actually use that constant.
