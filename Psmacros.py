@@ -575,16 +575,16 @@ def WaagenlisteUp(*args):
 
 
 class SchrankQuery(Query):
-	Cols = ["EAN", "Bezeichnung", "Land", "VK1", "VK0", "LiefID"]
+	Cols = ["EAN", "Bezeichnung", "Land", "VK1", "VK0", "Hersteller"]
 	SCols = 'SSSDDS'
 
 
-def SchranklisteKuehl1(*args):
+def _schrankliste(title, iwg, **pageopts):
 	"""Lists for the Refridgerators"""
-	listKuehl1 = SchrankQuery(iwg='1Mopro').run()
+	data = SchrankQuery(iwg=iwg).run()
 
-	sheet = Sheet('Kühlschrankliste1', 1, titlerows=1)
-	sheet.addData(listKuehl1)
+	sheet = Sheet(title, 1, titlerows=1)
+	sheet.addData(data)
 	sheet.setHeaderRow([
 		[0, 'EAN', ColumnDef(bold=True, hcenter=True)],
 		[1, 'Bezeichnung', ColumnDef()],
@@ -602,9 +602,37 @@ def SchranklisteKuehl1(*args):
 		ColumnDef(width=30)
 	])
 	sheet.formatColumns()
-	sheet.setPageStyle()
+	sheet.setPageStyle(**pageopts)
 
 	return None
+
+
+def KuehlschrankLinks(*args):
+	_schrankliste("Kühlschrank links", "kühl links")
+
+
+def KuehlschrankRechts(*args):
+	_schrankliste("Kühlschrank rechts", "kühl rechts")
+
+
+def KuehlschrankMopro1(*args):
+	_schrankliste("Kühlschrank Molkereiprodukte 1", "1Mopro")
+
+
+def KuehlschrankMopro2(*args):
+	_schrankliste("Kühlschrank Molkereiprodukte 2", "2Mopro")
+
+
+def KuehlschrankMix(*args):
+	_schrankliste("Kühlschrank Mix", "3Mix")
+
+
+def KuehlschrankVegan(*args):
+	_schrankliste("Kühlschrank Vegan", "4Vegan")
+
+
+def KuehlschrankFleisch(*args):
+	_schrankliste("Kühlschrank Fleisch", "5Fleisch", pages=2)
 
 
 class KassenlandQuery(Query):
@@ -745,7 +773,11 @@ g_exportedScripts = [
 	KassenlisteFleischUri,
 	KassenlisteGemuese,
 	KassenlisteLoseWare,
-	SchranklisteKuehl1,
+	KuehlschrankMopro1,
+	KuehlschrankMopro2,
+	KuehlschrankMix,
+	KuehlschrankVegan,
+	KuehlschrankFleisch,
 	Waagenliste,
 	WaagenlisteUp,
 	Waagenlisten
