@@ -145,6 +145,11 @@ so identifiers (variables, table and column names) must comply to the
 identfier rules: Start with letter or _ and not being a mssql keyword.
 You can still delimit identifiers by enclosing them in square brackets.
 
+Our code solely queries the V_ArtikelInfo table having columns:
+
+  WG, EAN, Bezeichnung, VKEinheit, Wiegeartikel, Land, iWG, LiefID, ArtNr,
+  EK0, VKGH, Hersteller, VK1, VK0, MwSt, LadenID, Waage
+
 
 Python for scripting
 --------------------
@@ -517,7 +522,6 @@ custom dictionaries, templates, etc. It is located in
 
   MacOS
     $HOME/Library/Application Support/LibreOffice/4/user
-
 
 Other URLs
 ----------
