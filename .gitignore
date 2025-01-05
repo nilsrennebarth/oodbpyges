@@ -1,4 +1,5 @@
-/__pycache__
 .~lock*
-/.vscode
 /examples
+/_build
+/__pycache__
+/.vscode
