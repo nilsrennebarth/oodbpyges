@@ -379,10 +379,7 @@ proprties:
     Can be used to select bold face, see below
   CellBackColor
     Background color, as 0xrrggbb
-  TopBorder
-  BottomBorder
-  LeftBorder
-  RightBorder
+  TopBorder, BottomBorder, LeftBorder, RightBorder
     Borders. use a BorderLine2 object (note the 2), with Properties
     `Color`, `InnerLineWidth`, `OuterLineWidth`, `LineDistance`, `LineStyle`
 
@@ -392,7 +389,7 @@ For other properties see
 `com.sun.star.table.CellProperties`
 
 Bold face is a special constant, obtained in python via::
-'
+
   bf = uno.getConstantByName("com.sun.star.awt.FontWeight.BOLD")
 
 Split/Merge cells by getting a cell range and call the .merge(True) method for
